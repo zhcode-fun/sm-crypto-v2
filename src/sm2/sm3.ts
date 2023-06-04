@@ -168,9 +168,6 @@ export function hmac(input: Uint8Array, key: Uint8Array) {
 
   const iPadKey = xor(key, iPad)
   const oPadKey = xor(key, oPad)
-  console.log({
-    iPadKey, oPadKey, input, key
-  })
 
   const hash = sm3(concatArray(iPadKey, input))
   return sm3(concatArray(oPadKey, hash))

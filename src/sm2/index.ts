@@ -99,7 +99,6 @@ export function doDecrypt(encryptData: string, privateKey: string, cipherMode = 
   }
   // c3 = hash(x2 || msg || y2)
   const checkC3 = arrayToHex(Array.from(sm3(concatArray(x2, msg, y2))))
-  console.log(msg, checkC3, c3)
 
   if (checkC3 === c3.toLowerCase()) {
     return output === 'array' ? msg : arrayToUtf8(msg)
