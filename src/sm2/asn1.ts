@@ -1,7 +1,8 @@
 /* eslint-disable class-methods-use-this */
-const {BigInteger} = require('jsbn')
 
-function bigintToValue(bigint) {
+import { BigInteger } from 'jsbn'
+
+function bigintToValue(bigint: BigInteger) {
   let h = bigint.toString(16)
   if (h[0] !== '-') {
     // 正数
@@ -15,24 +16,24 @@ function bigintToValue(bigint) {
     if (len % 2 === 1) len += 1 // 补齐到整字节
     else if (!h.match(/^[0-7]/)) len += 2 // 非0开头，则补一个全0字节
 
-    let mask = ''
-    for (let i = 0; i < len; i++) mask += 'f'
-    mask = new BigInteger(mask, 16)
+    let maskString = ''
+    for (let i = 0; i < len; i++) maskString += 'f'
+    let mask = new BigInteger(maskString, 16)
 
     // 对绝对值取反，加1
-    h = mask.xor(bigint).add(BigInteger.ONE)
-    h = h.toString(16).replace(/^-/, '')
+    let output = mask.xor(bigint).add(BigInteger.ONE)
+    h = output.toString(16).replace(/^-/, '')
   }
   return h
 }
 
 class ASN1Object {
-  constructor() {
-    this.tlv = null
-    this.t = '00'
-    this.l = '00'
-    this.v = ''
-  }
+  constructor(
+    public tlv: string | null = null,
+    public t = '00',
+    public l = '00',
+    public v = ''
+  ) { }
 
   /**
    * 获取 der 编码比特流16进制串
@@ -67,7 +68,7 @@ class ASN1Object {
 }
 
 class DERInteger extends ASN1Object {
-  constructor(bigint) {
+  constructor(bigint: BigInteger) {
     super()
 
     this.t = '02' // 整型标签说明
@@ -80,11 +81,9 @@ class DERInteger extends ASN1Object {
 }
 
 class DERSequence extends ASN1Object {
-  constructor(asn1Array) {
+  public t = '30'
+  constructor(public asn1Array: ASN1Object[]) {
     super()
-
-    this.t = '30' // 序列标签说明
-    this.asn1Array = asn1Array
   }
 
   getValue() {
@@ -96,21 +95,21 @@ class DERSequence extends ASN1Object {
 /**
  * 获取 l 占用字节数
  */
-function getLenOfL(str, start) {
+function getLenOfL(str: string, start: number) {
   if (+str[start + 2] < 8) return 1 // l 以0开头，则表示短格式，只占一个字节
-  return +str.substr(start + 2, 2) & 0x7f + 1 // 长格式，取第一个字节后7位作为长度真正占用字节数，再加上本身
+  return +str.substring(start + 2, start + 4) & 0x7f + 1 // 长格式，取第一个字节后7位作为长度真正占用字节数，再加上本身
 }
 
 /**
  * 获取 l
  */
-function getL(str, start) {
+function getL(str: string, start: number) {
   // 获取 l
   const len = getLenOfL(str, start)
-  const l = str.substr(start + 2, len * 2)
+  const l = str.substring(start + 2, start + 2 + len * 2)
 
   if (!l) return -1
-  const bigint = +l[0] < 8 ? new BigInteger(l, 16) : new BigInteger(l.substr(2), 16)
+  const bigint = +l[0] < 8 ? new BigInteger(l, 16) : new BigInteger(l.substring(2), 16)
 
   return bigint.intValue()
 }
@@ -118,44 +117,42 @@ function getL(str, start) {
 /**
  * 获取 v 的位置
  */
-function getStartOfV(str, start) {
+function getStartOfV(str: string, start: number) {
   const len = getLenOfL(str, start)
   return start + (len + 1) * 2
 }
 
-module.exports = {
-  /**
-   * ASN.1 der 编码，针对 sm2 签名
-   */
-  encodeDer(r, s) {
-    const derR = new DERInteger(r)
-    const derS = new DERInteger(s)
-    const derSeq = new DERSequence([derR, derS])
+/**
+ * ASN.1 der 编码，针对 sm2 签名
+ */
+export function encodeDer(r: BigInteger, s: BigInteger) {
+  const derR = new DERInteger(r)
+  const derS = new DERInteger(s)
+  const derSeq = new DERSequence([derR, derS])
 
-    return derSeq.getEncodedHex()
-  },
+  return derSeq.getEncodedHex()
+}
 
-  /**
-   * 解析 ASN.1 der，针对 sm2 验签
-   */
-  decodeDer(input) {
-    // 结构：
-    // input = | tSeq | lSeq | vSeq |
-    // vSeq = | tR | lR | vR | tS | lS | vS |
-    const start = getStartOfV(input, 0)
+/**
+ * 解析 ASN.1 der，针对 sm2 验签
+ */
+export function decodeDer(input: string) {
+  // 结构：
+  // input = | tSeq | lSeq | vSeq |
+  // vSeq = | tR | lR | vR | tS | lS | vS |
+  const start = getStartOfV(input, 0)
 
-    const vIndexR = getStartOfV(input, start)
-    const lR = getL(input, start)
-    const vR = input.substr(vIndexR, lR * 2)
+  const vIndexR = getStartOfV(input, start)
+  const lR = getL(input, start)
+  const vR = input.substr(vIndexR, lR * 2)
 
-    const nextStart = vIndexR + vR.length
-    const vIndexS = getStartOfV(input, nextStart)
-    const lS = getL(input, nextStart)
-    const vS = input.substr(vIndexS, lS * 2)
+  const nextStart = vIndexR + vR.length
+  const vIndexS = getStartOfV(input, nextStart)
+  const lS = getL(input, nextStart)
+  const vS = input.substring(vIndexS, vIndexS + lS * 2)
 
-    const r = new BigInteger(vR, 16)
-    const s = new BigInteger(vS, 16)
+  const r = new BigInteger(vR, 16)
+  const s = new BigInteger(vS, 16)
 
-    return {r, s}
-  }
+  return { r, s }
 }

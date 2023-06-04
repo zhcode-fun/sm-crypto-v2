@@ -1,4 +1,5 @@
-const sm2 = require('../src/index').sm2
+import { sm2 } from '@/index'
+import { beforeAll, test, expect} from 'vitest'
 
 const cipherMode = 1 // 1 - C1C3C2，0 - C1C2C3
 
@@ -12,7 +13,6 @@ let privateKey
 beforeAll(() => {
     // 生成密钥对
     let keypair = sm2.generateKeyPairHex()
-
     unCompressedPublicKey = keypair.publicKey
     privateKey = keypair.privateKey
     
@@ -30,7 +30,7 @@ test('sm2: generate keypair', () => {
     expect(sm2.comparePublicKeyHex(compressedPublicKey, compressedPublicKey)).toBe(true)
 
     // 自定义随机数
-    const random = []
+    const random: number[] = []
     for (let i = 0; i < 20; i++) random.push(~~(Math.random() * 10))
     const keypair2 = sm2.generateKeyPairHex(random.join(''))
     expect(keypair2.publicKey.length).toBe(130)
@@ -54,14 +54,14 @@ test('sm2: encrypt and decrypt data', () => {
             expect(decryptData).toBe(msgString)
         }
 
-        encryptData = sm2.doEncrypt([0x61, 0x62, 0x73, 0x61, 0x73, 0x64, 0x61, 0x67, 0x66, 0x61, 0x64, 0x67, 0x61, 0x64, 0x73, 0x66, 0x64, 0x66, 0x64, 0x73, 0x66], publicKey, cipherMode)
+        encryptData = sm2.doEncrypt(Uint8Array.from([0x61, 0x62, 0x73, 0x61, 0x73, 0x64, 0x61, 0x67, 0x66, 0x61, 0x64, 0x67, 0x61, 0x64, 0x73, 0x66, 0x64, 0x66, 0x64, 0x73, 0x66]), publicKey, cipherMode)
         decryptData = sm2.doDecrypt(encryptData, privateKey, cipherMode)
         expect(decryptData).toBe(msgString)
         encryptData = sm2.doEncrypt(Uint8Array.from([0x61, 0x62, 0x73, 0x61, 0x73, 0x64, 0x61, 0x67, 0x66, 0x61, 0x64, 0x67, 0x61, 0x64, 0x73, 0x66, 0x64, 0x66, 0x64, 0x73, 0x66]), publicKey, cipherMode)
         decryptData = sm2.doDecrypt(encryptData, privateKey, cipherMode)
         expect(decryptData).toBe(msgString)
         decryptData = sm2.doDecrypt(encryptData, privateKey, cipherMode, {output: 'array'})
-        expect(decryptData).toEqual([0x61, 0x62, 0x73, 0x61, 0x73, 0x64, 0x61, 0x67, 0x66, 0x61, 0x64, 0x67, 0x61, 0x64, 0x73, 0x66, 0x64, 0x66, 0x64, 0x73, 0x66])
+        expect(decryptData).toEqual(Uint8Array.from([0x61, 0x62, 0x73, 0x61, 0x73, 0x64, 0x61, 0x67, 0x66, 0x61, 0x64, 0x67, 0x61, 0x64, 0x73, 0x66, 0x64, 0x66, 0x64, 0x73, 0x66]))
     }
 })
 
@@ -114,7 +114,7 @@ test('sm2: sign data and verify sign', () => {
         })
         let verifyResult5 = sm2.doVerifySignature(msgString, sigValueHex5, publicKey, {
             hash: true,
-            publicKey,
+            // publicKey,
         })
         expect(verifyResult5).toBe(true)
 

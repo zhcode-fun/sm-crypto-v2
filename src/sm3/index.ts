@@ -1,51 +1,23 @@
-const {sm3, hmac} = require('../sm2/sm3')
+import { hmac, sm3 as sm2sm3 } from '../sm2/sm3'
+import { arrayToHex, hexToArray, leftPad } from '../sm2/utils'
 
 /**
  * 补全16进制字符串
  */
-function leftPad(input, num) {
-  if (input.length >= num) return input
+// function leftPad(input, num) {
+//   if (input.length >= num) return input
 
-  return (new Array(num - input.length + 1)).join('0') + input
-}
-
-/**
- * 字节数组转 16 进制串
- */
-function ArrayToHex(arr) {
-  return arr.map(item => {
-    item = item.toString(16)
-    return item.length === 1 ? '0' + item : item
-  }).join('')
-}
-
-/**
- * 转成字节数组
- */
-function hexToArray(hexStr) {
-  const words = []
-  let hexStrLength = hexStr.length
-
-  if (hexStrLength % 2 !== 0) {
-    hexStr = leftPad(hexStr, hexStrLength + 1)
-  }
-
-  hexStrLength = hexStr.length
-
-  for (let i = 0; i < hexStrLength; i += 2) {
-    words.push(parseInt(hexStr.substr(i, 2), 16))
-  }
-  return words
-}
+//   return (new Array(num - input.length + 1)).join('0') + input
+// }
 
 /**
  * utf8 串转字节数组
  */
-function utf8ToArray(str) {
-  const arr = []
+export function utf8ToArray(str: string) {
+  const arr: number[] = []
 
   for (let i = 0, len = str.length; i < len; i++) {
-    const point = str.codePointAt(i)
+    const point = str.codePointAt(i)!
 
     if (point <= 0x007f) {
       // 单字节，标量值：00000000 00000000 0zzzzzzz
@@ -73,11 +45,14 @@ function utf8ToArray(str) {
     }
   }
 
-  return arr
+  return new Uint8Array(arr)
 }
 
-module.exports = function (input, options) {
-  input = typeof input === 'string' ? utf8ToArray(input) : Array.prototype.slice.call(input)
+export function sm3(input: string | Uint8Array, options?: {
+  key: Uint8Array | string
+  mode?: 'hmac' | 'mac'
+}) {
+  input = typeof input === 'string' ? utf8ToArray(input) : input
 
   if (options) {
     const mode = options.mode || 'hmac'
@@ -86,9 +61,9 @@ module.exports = function (input, options) {
     let key = options.key
     if (!key) throw new Error('invalid key')
 
-    key = typeof key === 'string' ? hexToArray(key) : Array.prototype.slice.call(key)
-    return ArrayToHex(hmac(input, key))
+    key = typeof key === 'string' ? hexToArray(key) : key
+    return arrayToHex(Array.from(hmac(input, key)))
   }
 
-  return ArrayToHex(sm3(input))
+  return arrayToHex(Array.from(sm2sm3(input)))
 }

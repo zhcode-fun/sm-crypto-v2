@@ -1,5 +1,6 @@
 /* eslint-disable no-case-declarations, max-len */
-const {BigInteger} = require('jsbn')
+
+import { BigInteger } from 'jsbn'
 
 /**
  * thanks for Tom Wu : http://www-cs-students.stanford.edu/~tjw/jsbn/
@@ -16,16 +17,14 @@ const THREE = new BigInteger('3')
  * 椭圆曲线域元素
  */
 class ECFieldElementFp {
-  constructor(q, x) {
-    this.x = x
-    this.q = q
+  constructor(public q: BigInteger, public x: BigInteger) {
     // TODO if (x.compareTo(q) >= 0) error
   }
 
   /**
    * 判断相等
    */
-  equals(other) {
+  equals(other: ECFieldElementFp) {
     if (other === this) return true
     return (this.q.equals(other.q) && this.x.equals(other.x))
   }
@@ -81,10 +80,9 @@ class ECFieldElementFp {
 }
 
 class ECPointFp {
-  constructor(curve, x, y, z) {
-    this.curve = curve
-    this.x = x
-    this.y = y
+  zinv: BigInteger | null
+  z: BigInteger
+  constructor(public curve: ECCurveFp, public x: ECFieldElementFp | null, public y: ECFieldElementFp | null, z?: BigInteger) {
     // 标准射影坐标系：zinv == null 或 z * zinv == 1
     this.z = z == null ? BigInteger.ONE : z
     this.zinv = null
@@ -94,29 +92,29 @@ class ECPointFp {
   getX() {
     if (this.zinv === null) this.zinv = this.z.modInverse(this.curve.q)
 
-    return this.curve.fromBigInteger(this.x.toBigInteger().multiply(this.zinv).mod(this.curve.q))
+    return this.curve.fromBigInteger(this.x!.toBigInteger().multiply(this.zinv).mod(this.curve.q))
   }
 
   getY() {
     if (this.zinv === null) this.zinv = this.z.modInverse(this.curve.q)
 
-    return this.curve.fromBigInteger(this.y.toBigInteger().multiply(this.zinv).mod(this.curve.q))
+    return this.curve.fromBigInteger(this.y!.toBigInteger().multiply(this.zinv).mod(this.curve.q))
   }
 
   /**
    * 判断相等
    */
-  equals(other) {
+  equals(other: ECPointFp) {
     if (other === this) return true
     if (this.isInfinity()) return other.isInfinity()
     if (other.isInfinity()) return this.isInfinity()
 
     // u = y2 * z1 - y1 * z2
-    const u = other.y.toBigInteger().multiply(this.z).subtract(this.y.toBigInteger().multiply(other.z)).mod(this.curve.q)
+    const u = other.y!.toBigInteger().multiply(this.z).subtract(this.y!.toBigInteger().multiply(other.z)).mod(this.curve.q)
     if (!u.equals(BigInteger.ZERO)) return false
 
     // v = x2 * z1 - x1 * z2
-    const v = other.x.toBigInteger().multiply(this.z).subtract(this.x.toBigInteger().multiply(other.z)).mod(this.curve.q)
+    const v = other.x!.toBigInteger().multiply(this.z).subtract(this.x!.toBigInteger().multiply(other.z)).mod(this.curve.q)
     return v.equals(BigInteger.ZERO)
   }
 
@@ -125,14 +123,14 @@ class ECPointFp {
    */
   isInfinity() {
     if ((this.x === null) && (this.y === null)) return true
-    return this.z.equals(BigInteger.ZERO) && !this.y.toBigInteger().equals(BigInteger.ZERO)
+    return this.z.equals(BigInteger.ZERO) && !this.y!.toBigInteger().equals(BigInteger.ZERO)
   }
 
   /**
    * 取反，x 轴对称点
    */
   negate() {
-    return new ECPointFp(this.curve, this.x, this.y.negate(), this.z)
+    return new ECPointFp(this.curve, this.x, this.y!.negate(), this.z)
   }
 
   /**
@@ -155,15 +153,15 @@ class ECPointFp {
    * y3 = λ6 * (λ9 * λ1 − λ11) − λ4 * λ10
    * z3 = λ10 * λ8
    */
-  add(b) {
+  add(b: ECPointFp) {
     if (this.isInfinity()) return b
     if (b.isInfinity()) return this
 
-    const x1 = this.x.toBigInteger()
-    const y1 = this.y.toBigInteger()
+    const x1 = this.x!.toBigInteger()
+    const y1 = this.y!.toBigInteger()
     const z1 = this.z
-    const x2 = b.x.toBigInteger()
-    const y2 = b.y.toBigInteger()
+    const x2 = b.x!.toBigInteger()
+    const y2 = b.y!.toBigInteger()
     const z2 = b.z
     const q = this.curve.q
 
@@ -211,10 +209,10 @@ class ECPointFp {
    */
   twice() {
     if (this.isInfinity()) return this
-    if (!this.y.toBigInteger().signum()) return this.curve.infinity
+    if (!this.y!.toBigInteger().signum()) return this.curve.infinity
 
-    const x1 = this.x.toBigInteger()
-    const y1 = this.y.toBigInteger()
+    const x1 = this.x!.toBigInteger()
+    const y1 = this.y!.toBigInteger()
     const z1 = this.z
     const q = this.curve.q
     const a = this.curve.a.toBigInteger()
@@ -236,14 +234,14 @@ class ECPointFp {
   /**
    * 倍点计算
    */
-  multiply(k) {
+  multiply(k: BigInteger) {
     if (this.isInfinity()) return this
     if (!k.signum()) return this.curve.infinity
 
     // 使用加减法
     const k3 = k.multiply(THREE)
     const neg = this.negate()
-    let Q = this
+    let Q: ECPointFp = this
 
     for (let i = k3.bitLength() - 2; i > 0; i--) {
       Q = Q.twice()
@@ -263,8 +261,11 @@ class ECPointFp {
 /**
  * 椭圆曲线 y^2 = x^3 + ax + b
  */
-class ECCurveFp {
-  constructor(q, a, b) {
+export class ECCurveFp {
+  infinity: ECPointFp
+  a: ECFieldElementFp
+  b: ECFieldElementFp
+  constructor(public q: BigInteger, a: BigInteger, b: BigInteger) {
     this.q = q
     this.a = this.fromBigInteger(a)
     this.b = this.fromBigInteger(b)
@@ -274,7 +275,7 @@ class ECCurveFp {
   /**
    * 判断两个椭圆曲线是否相等
    */
-  equals(other) {
+  equals(other: ECCurveFp) {
     if (other === this) return true
     return (this.q.equals(other.q) && this.a.equals(other.a) && this.b.equals(other.b))
   }
@@ -282,22 +283,22 @@ class ECCurveFp {
   /**
    * 生成椭圆曲线域元素
    */
-  fromBigInteger(x) {
+  fromBigInteger(x: BigInteger) {
     return new ECFieldElementFp(this.q, x)
   }
 
   /**
    * 解析 16 进制串为椭圆曲线点
    */
-  decodePointHex(s) {
-    switch (parseInt(s.substr(0, 2), 16)) {
+  decodePointHex(s: string) {
+    switch (parseInt(s.substring(0, 2), 16)) {
       // 第一个字节
       case 0:
         return this.infinity
       case 2:
       case 3:
         // 压缩
-        const x = this.fromBigInteger(new BigInteger(s.substr(2), 16))
+        const x = this.fromBigInteger(new BigInteger(s.substring(2), 16))
         // 对 p ≡ 3 (mod4)，即存在正整数 u，使得 p = 4u + 3
         // 计算 y = (√ (x^3 + ax + b) % p)^(u + 1) modp
         let y = this.fromBigInteger(x.multiply(x.square()).add(
@@ -307,7 +308,7 @@ class ECCurveFp {
             this.q.divide(new BigInteger('4')).add(BigInteger.ONE), this.q
           ))
         // 算出结果 2 进制最后 1 位不等于第 1 个字节减 2 则取反
-        if (!y.toBigInteger().mod(TWO).equals(new BigInteger(s.substr(0, 2), 16).subtract(TWO))) {
+        if (!y.toBigInteger().mod(TWO).equals(new BigInteger(s.substring(0, 2), 16).subtract(TWO))) {
           y = y.negate()
         }
         return new ECPointFp(this, x, y)
@@ -315,8 +316,8 @@ class ECCurveFp {
       case 6:
       case 7:
         const len = (s.length - 2) / 2
-        const xHex = s.substr(2, len)
-        const yHex = s.substr(len + 2, len)
+        const xHex = s.substring(2, 2 + len)
+        const yHex = s.substring(len + 2, len + 2 + len)
 
         return new ECPointFp(this, this.fromBigInteger(new BigInteger(xHex, 16)), this.fromBigInteger(new BigInteger(yHex, 16)))
       default:
@@ -326,7 +327,7 @@ class ECCurveFp {
   }
 }
 
-module.exports = {
+export const ec = {
   ECPointFp,
   ECCurveFp,
 }

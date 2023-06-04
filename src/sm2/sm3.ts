@@ -1,3 +1,5 @@
+import { concatArray } from './utils'
+
 // 消息扩展
 const W = new Uint32Array(68)
 const M = new Uint32Array(64) // W'
@@ -5,7 +7,7 @@ const M = new Uint32Array(64) // W'
 /**
  * 循环左移
  */
-function rotl(x, n) {
+export function rotl(x: number, n: number) {
   const s = n & 31
   return (x << s) | (x >>> (32 - s))
 }
@@ -13,8 +15,8 @@ function rotl(x, n) {
 /**
  * 二进制异或运算
  */
-function xor(x, y) {
-  const result = []
+function xor(x: Uint8Array, y: Uint8Array) {
+  const result = new Uint8Array(x.length)
   for (let i = x.length - 1; i >= 0; i--) result[i] = (x[i] ^ y[i]) & 0xff
   return result
 }
@@ -22,23 +24,22 @@ function xor(x, y) {
 /**
  * 压缩函数中的置换函数 P0(X) = X xor (X <<< 9) xor (X <<< 17)
  */
-function P0(X) {
+function P0(X: number) {
   return (X ^ rotl(X, 9)) ^ rotl(X, 17)
 }
 
 /**
  * 消息扩展中的置换函数 P1(X) = X xor (X <<< 15) xor (X <<< 23)
  */
-function P1(X) {
+function P1(X: number) {
   return (X ^ rotl(X, 15)) ^ rotl(X, 23)
 }
 
 /**
  * sm3 本体
  */
-function sm3(array) {
+export function sm3(array: Uint8Array) {
   let len = array.length * 8
-
   // k 是满足 len + 1 + k = 448mod512 的最小的非负整数
   let k = len % 512
   // 如果 448 <= (512 % len) < 512，需要多补充 (len % 448) 比特'0'以满足总比特长度为512的倍数
@@ -49,15 +50,15 @@ function sm3(array) {
   const lenArr = new Array(8)
   for (let i = 0, len = kArr.length; i < len; i++) kArr[i] = 0
   for (let i = 0, len = lenArr.length; i < len; i++) lenArr[i] = 0
-  len = len.toString(2)
+  let lenString = len.toString(2)
   for (let i = 7; i >= 0; i--) {
-    if (len.length > 8) {
-      const start = len.length - 8
-      lenArr[i] = parseInt(len.substr(start), 2)
-      len = len.substr(0, start)
-    } else if (len.length > 0) {
-      lenArr[i] = parseInt(len, 2)
-      len = ''
+    if (lenString.length > 8) {
+      const start = lenString.length - 8
+      lenArr[i] = parseInt(lenString.substring(start), 2)
+      lenString = lenString.substring(0, start)
+    } else if (lenString.length > 0) {
+      lenArr[i] = parseInt(lenString, 2)
+      lenString = ''
     }
   }
   const m = new Uint8Array([...array, 0x80, ...kArr, ...lenArr])
@@ -99,11 +100,11 @@ function sm3(array) {
     let G = V[6]
     let H = V[7]
     // 中间变量
-    let SS1
-    let SS2
-    let TT1
-    let TT2
-    let T
+    let SS1: number
+    let SS2: number
+    let TT1: number
+    let TT2: number
+    let T: number
     for (let j = 0; j < 64; j++) {
       T = j >= 0 && j <= 15 ? T1 : T2
       SS1 = rotl(rotl(A, 12) + E + rotl(T, j), 7)
@@ -133,10 +134,13 @@ function sm3(array) {
   }
 
   // 转回 uint8
-  const result = []
+  const result = new Uint8Array(V.length * 4)
   for (let i = 0, len = V.length; i < len; i++) {
     const word = V[i]
-    result.push((word & 0xff000000) >>> 24, (word & 0xff0000) >>> 16, (word & 0xff00) >>> 8, word & 0xff)
+    result[i * 4] = (word & 0xff000000) >>> 24
+    result[i * 4 + 1] = (word & 0xff0000) >>> 16
+    result[i * 4 + 2] = (word & 0xff00) >>> 8
+    result[i * 4 + 3] = word & 0xff
   }
 
   return result
@@ -152,19 +156,22 @@ for (let i = 0; i < blockLen; i++) {
   iPad[i] = 0x36
   oPad[i] = 0x5c
 }
-function hmac(input, key) {
+
+export function hmac(input: Uint8Array, key: Uint8Array) {
   // 密钥填充
   if (key.length > blockLen) key = sm3(key)
-  while (key.length < blockLen) key.push(0)
+  while (key.length < blockLen) {
+    const padKey = new Uint8Array(blockLen)
+    padKey.set(key)
+    key = padKey
+  }
 
   const iPadKey = xor(key, iPad)
   const oPadKey = xor(key, oPad)
+  console.log({
+    iPadKey, oPadKey, input, key
+  })
 
-  const hash = sm3([...iPadKey, ...input])
-  return sm3([...oPadKey, ...hash])
-}
-
-module.exports = {
-  sm3,
-  hmac,
+  const hash = sm3(concatArray(iPadKey, input))
+  return sm3(concatArray(oPadKey, hash))
 }

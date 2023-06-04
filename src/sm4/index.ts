@@ -1,9 +1,13 @@
+import { rotl } from '../sm2/sm3'
+import { arrayToHex, arrayToUtf8, hexToArray } from '../sm2/utils'
+import { utf8ToArray } from '../sm3'
+
 /* eslint-disable no-bitwise, no-mixed-operators, complexity */
 const DECRYPT = 0
 const ROUND = 32
 const BLOCK = 16
 
-const Sbox = [
+const Sbox = new Uint8Array([
   0xd6, 0x90, 0xe9, 0xfe, 0xcc, 0xe1, 0x3d, 0xb7, 0x16, 0xb6, 0x14, 0xc2, 0x28, 0xfb, 0x2c, 0x05,
   0x2b, 0x67, 0x9a, 0x76, 0x2a, 0xbe, 0x04, 0xc3, 0xaa, 0x44, 0x13, 0x26, 0x49, 0x86, 0x06, 0x99,
   0x9c, 0x42, 0x50, 0xf4, 0x91, 0xef, 0x98, 0x7a, 0x33, 0x54, 0x0b, 0x43, 0xed, 0xcf, 0xac, 0x62,
@@ -20,9 +24,9 @@ const Sbox = [
   0x0a, 0xc1, 0x31, 0x88, 0xa5, 0xcd, 0x7b, 0xbd, 0x2d, 0x74, 0xd0, 0x12, 0xb8, 0xe5, 0xb4, 0xb0,
   0x89, 0x69, 0x97, 0x4a, 0x0c, 0x96, 0x77, 0x7e, 0x65, 0xb9, 0xf1, 0x09, 0xc5, 0x6e, 0xc6, 0x84,
   0x18, 0xf0, 0x7d, 0xec, 0x3a, 0xdc, 0x4d, 0x20, 0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48
-]
+])
 
-const CK = [
+const CK = new Uint32Array([
   0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
   0x70777e85, 0x8c939aa1, 0xa8afb6bd, 0xc4cbd2d9,
   0xe0e7eef5, 0xfc030a11, 0x181f262d, 0x343b4249,
@@ -31,106 +35,12 @@ const CK = [
   0x30373e45, 0x4c535a61, 0x686f767d, 0x848b9299,
   0xa0a7aeb5, 0xbcc3cad1, 0xd8dfe6ed, 0xf4fb0209,
   0x10171e25, 0x2c333a41, 0x484f565d, 0x646b7279
-]
-
-/**
- * 16 进制串转字节数组
- */
-function hexToArray(str) {
-  const arr = []
-  for (let i = 0, len = str.length; i < len; i += 2) {
-    arr.push(parseInt(str.substr(i, 2), 16))
-  }
-  return arr
-}
-
-/**
- * 字节数组转 16 进制串
- */
-function ArrayToHex(arr) {
-  return arr.map(item => {
-    item = item.toString(16)
-    return item.length === 1 ? '0' + item : item
-  }).join('')
-}
-
-/**
- * utf8 串转字节数组
- */
-function utf8ToArray(str) {
-  const arr = []
-
-  for (let i = 0, len = str.length; i < len; i++) {
-    const point = str.codePointAt(i)
-
-    if (point <= 0x007f) {
-      // 单字节，标量值：00000000 00000000 0zzzzzzz
-      arr.push(point)
-    } else if (point <= 0x07ff) {
-      // 双字节，标量值：00000000 00000yyy yyzzzzzz
-      arr.push(0xc0 | (point >>> 6)) // 110yyyyy（0xc0-0xdf）
-      arr.push(0x80 | (point & 0x3f)) // 10zzzzzz（0x80-0xbf）
-    } else if (point <= 0xD7FF || (point >= 0xE000 && point <= 0xFFFF)) {
-      // 三字节：标量值：00000000 xxxxyyyy yyzzzzzz
-      arr.push(0xe0 | (point >>> 12)) // 1110xxxx（0xe0-0xef）
-      arr.push(0x80 | ((point >>> 6) & 0x3f)) // 10yyyyyy（0x80-0xbf）
-      arr.push(0x80 | (point & 0x3f)) // 10zzzzzz（0x80-0xbf）
-    } else if (point >= 0x010000 && point <= 0x10FFFF) {
-      // 四字节：标量值：000wwwxx xxxxyyyy yyzzzzzz
-      i++
-      arr.push((0xf0 | (point >>> 18) & 0x1c)) // 11110www（0xf0-0xf7）
-      arr.push((0x80 | ((point >>> 12) & 0x3f))) // 10xxxxxx（0x80-0xbf）
-      arr.push((0x80 | ((point >>> 6) & 0x3f))) // 10yyyyyy（0x80-0xbf）
-      arr.push((0x80 | (point & 0x3f))) // 10zzzzzz（0x80-0xbf）
-    } else {
-      // 五、六字节，暂时不支持
-      arr.push(point)
-      throw new Error('input is not supported')
-    }
-  }
-
-  return arr
-}
-
-/**
- * 字节数组转 utf8 串
- */
-function arrayToUtf8(arr) {
-  const str = []
-  for (let i = 0, len = arr.length; i < len; i++) {
-    if (arr[i] >= 0xf0 && arr[i] <= 0xf7) {
-      // 四字节
-      str.push(String.fromCodePoint(((arr[i] & 0x07) << 18) + ((arr[i + 1] & 0x3f) << 12) + ((arr[i + 2] & 0x3f) << 6) + (arr[i + 3] & 0x3f)))
-      i += 3
-    } else if (arr[i] >= 0xe0 && arr[i] <= 0xef) {
-      // 三字节
-      str.push(String.fromCodePoint(((arr[i] & 0x0f) << 12) + ((arr[i + 1] & 0x3f) << 6) + (arr[i + 2] & 0x3f)))
-      i += 2
-    } else if (arr[i] >= 0xc0 && arr[i] <= 0xdf) {
-      // 双字节
-      str.push(String.fromCodePoint(((arr[i] & 0x1f) << 6) + (arr[i + 1] & 0x3f)))
-      i++
-    } else {
-      // 单字节
-      str.push(String.fromCodePoint(arr[i]))
-    }
-  }
-
-  return str.join('')
-}
-
-/**
- * 32 比特循环左移
- */
-function rotl(x, n) {
-  const s = n & 31
-  return (x << s) | (x >>> (32 - s))
-}
+])
 
 /**
  * 非线性变换
  */
-function byteSub(a) {
+function byteSub(a: number) {
   return (Sbox[a >>> 24 & 0xFF] & 0xFF) << 24 |
     (Sbox[a >>> 16 & 0xFF] & 0xFF) << 16 |
     (Sbox[a >>> 8 & 0xFF] & 0xFF) << 8 |
@@ -140,25 +50,25 @@ function byteSub(a) {
 /**
  * 线性变换，加密/解密用
  */
-function l1(b) {
+function l1(b: number) {
   return b ^ rotl(b, 2) ^ rotl(b, 10) ^ rotl(b, 18) ^ rotl(b, 24)
 }
 
 /**
  * 线性变换，生成轮密钥用
  */
-function l2(b) {
+function l2(b: number) {
   return b ^ rotl(b, 13) ^ rotl(b, 23)
 }
 
 /**
  * 以一组 128 比特进行加密/解密操作
  */
-function sms4Crypt(input, output, roundKey) {
-  const x = new Array(4)
+function sms4Crypt(input: Uint8Array, output: Uint8Array, roundKey: Uint32Array) {
+  const x = new Uint32Array(4)
 
   // 字节数组转成字数组（此处 1 字 = 32 比特）
-  const tmp = new Array(4)
+  const tmp = new Uint32Array(4)
   for (let i = 0; i < 4; i++) {
     tmp[0] = input[4 * i] & 0xff
     tmp[1] = input[4 * i + 1] & 0xff
@@ -168,7 +78,7 @@ function sms4Crypt(input, output, roundKey) {
   }
 
   // x[i + 4] = x[i] ^ l1(byteSub(x[i + 1] ^ x[i + 2] ^ x[i + 3] ^ roundKey[i]))
-  for (let r = 0, mid; r < 32; r += 4) {
+  for (let r = 0, mid: number; r < 32; r += 4) {
     mid = x[1] ^ x[2] ^ x[3] ^ roundKey[r + 0]
     x[0] ^= l1(byteSub(mid)) // x[4]
 
@@ -194,11 +104,11 @@ function sms4Crypt(input, output, roundKey) {
 /**
  * 密钥扩展算法
  */
-function sms4KeyExt(key, roundKey, cryptFlag) {
-  const x = new Array(4)
+function sms4KeyExt(key: Uint8Array, roundKey: Uint32Array, cryptFlag: 0 | 1) {
+  const x = new Uint32Array(4)
 
   // 字节数组转成字数组（此处 1 字 = 32 比特）
-  const tmp = new Array(4)
+  const tmp = new Uint32Array(4)
   for (let i = 0; i < 4; i++) {
     tmp[0] = key[0 + 4 * i] & 0xff
     tmp[1] = key[1 + 4 * i] & 0xff
@@ -214,7 +124,7 @@ function sms4KeyExt(key, roundKey, cryptFlag) {
   x[3] ^= 0xb27022dc
 
   // roundKey[i] = x[i + 4] = x[i] ^ l2(byteSub(x[i + 1] ^ x[i + 2] ^ x[i + 3] ^ CK[i]))
-  for (let r = 0, mid; r < 32; r += 4) {
+  for (let r = 0, mid: number; r < 32; r += 4) {
     mid = x[1] ^ x[2] ^ x[3] ^ CK[r + 0]
     roundKey[r + 0] = x[0] ^= l2(byteSub(mid)) // x[4]
 
@@ -230,17 +140,24 @@ function sms4KeyExt(key, roundKey, cryptFlag) {
 
   // 解密时使用反序的轮密钥
   if (cryptFlag === DECRYPT) {
-    for (let r = 0, mid; r < 16; r++) {
+    for (let r = 0, mid: number; r < 16; r++) {
       mid = roundKey[r]
       roundKey[r] = roundKey[31 - r]
       roundKey[31 - r] = mid
     }
   }
 }
-
-function sm4(inArray, key, cryptFlag, {
-  padding = 'pkcs#7', mode, iv = [], output = 'string'
-} = {}) {
+export interface SM4Options {
+  padding?: 'pkcs#7' | 'pkcs#5' | 'none' | null, 
+  mode?: 'cbc' | 'ecb', iv?: Uint8Array | string, output?: 'string' | 'array'
+}
+export function sm4(inArray: Uint8Array | string, key: Uint8Array | string, cryptFlag: 0 | 1, options: SM4Options = {}) {
+  let {
+    padding = 'pkcs#7',
+    mode,
+    iv = new Uint8Array(16),
+    output
+  } = options
   if (mode === 'cbc') {
     // CBC 模式，默认走 ECB 模式
     if (typeof iv === 'string') iv = hexToArray(iv)
@@ -267,26 +184,29 @@ function sm4(inArray, key, cryptFlag, {
       inArray = hexToArray(inArray)
     }
   } else {
-    inArray = [...inArray]
+    inArray = new Uint8Array(inArray)
   }
 
   // 新增填充，sm4 是 16 个字节一个分组，所以统一走到 pkcs#7
   if ((padding === 'pkcs#5' || padding === 'pkcs#7') && cryptFlag !== DECRYPT) {
     const paddingCount = BLOCK - inArray.length % BLOCK
-    for (let i = 0; i < paddingCount; i++) inArray.push(paddingCount)
+    const newArray = new Uint8Array(inArray.length + paddingCount)
+    newArray.set(inArray, 0)
+    for (let i = 0; i < paddingCount; i++) newArray[inArray.length + i] = paddingCount
+    inArray = newArray
   }
 
   // 生成轮密钥
-  const roundKey = new Array(ROUND)
+  const roundKey = new Uint32Array(ROUND)
   sms4KeyExt(key, roundKey, cryptFlag)
 
-  const outArray = []
-  let lastVector = iv
+  let outArray = new Uint8Array(inArray.length)
+  let lastVector = iv as Uint8Array
   let restLen = inArray.length
   let point = 0
   while (restLen >= BLOCK) {
     const input = inArray.slice(point, point + 16)
-    const output = new Array(16)
+    const output = new Uint8Array(16)
 
     if (mode === 'cbc') {
       for (let i = 0; i < BLOCK; i++) {
@@ -332,14 +252,14 @@ function sm4(inArray, key, cryptFlag, {
     for (let i = 1; i <= paddingCount; i++) {
       if (outArray[len - i] !== paddingCount) throw new Error('padding is invalid')
     }
-    outArray.splice(len - paddingCount, paddingCount)
+    outArray = outArray.slice(0, len - paddingCount)
   }
 
   // 调整输出
   if (output !== 'array') {
     if (cryptFlag !== DECRYPT) {
       // 加密，输出转 16 进制串
-      return ArrayToHex(outArray)
+      return arrayToHex(Array.from(outArray))
     } else {
       // 解密，输出转 utf8 串
       return arrayToUtf8(outArray)
@@ -349,11 +269,9 @@ function sm4(inArray, key, cryptFlag, {
   }
 }
 
-module.exports = {
-  encrypt(inArray, key, options) {
-    return sm4(inArray, key, 1, options)
-  },
-  decrypt(inArray, key, options) {
-    return sm4(inArray, key, 0, options)
-  }
+export function encrypt(inArray: Uint8Array | string, key: Uint8Array | string, options: SM4Options = {}) {
+  return sm4(inArray, key, 1, options)
+}
+export function decrypt(inArray: Uint8Array | string, key: Uint8Array | string, options: SM4Options = {}) {
+  return sm4(inArray, key, 0, options)
 }

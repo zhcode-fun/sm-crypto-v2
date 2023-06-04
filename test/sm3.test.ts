@@ -1,7 +1,8 @@
-const fs = require('fs')
-const path = require('path')
-const sm3 = require('../src/index').sm3
-
+import { sm3 } from '@/sm3'
+import { test, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { concatArray } from '@/sm2'
 test('sm3: must match the result', () => {
     // 单字节
     expect(sm3('abc')).toBe('66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0')
@@ -25,9 +26,9 @@ test('sm3: must match the result', () => {
     expect(sm3('🇨🇳𠮷😀😃😄😁😆😅')).toBe('b6d217a24511ddb7593f13b74519038618cbb5b947fee20da3f0cd5503152c23')
 
     // 字节数组
-    expect(sm3([0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0x20, 0xe6, 0x88, 0x91, 0xe6, 0x98, 0xaf, 0x20, 0x6a, 0x75, 0x6e, 0x65, 0x61, 0x6e, 0x64, 0x67, 0x72, 0x65, 0x65, 0x6e, 0x2e])).toBe('ef1cc8e36012c1f1bc18034ab778ef800e8bb1b40c7a4c7177186f6fd521110e')
+    expect(sm3(Uint8Array.from([0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0x20, 0xe6, 0x88, 0x91, 0xe6, 0x98, 0xaf, 0x20, 0x6a, 0x75, 0x6e, 0x65, 0x61, 0x6e, 0x64, 0x67, 0x72, 0x65, 0x65, 0x6e, 0x2e]))).toBe('ef1cc8e36012c1f1bc18034ab778ef800e8bb1b40c7a4c7177186f6fd521110e')
     expect(sm3('hello world! 我是 juneandgreen.')).toBe('ef1cc8e36012c1f1bc18034ab778ef800e8bb1b40c7a4c7177186f6fd521110e')
-    expect(sm3([0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0x20, 0xe6, 0x88, 0x91, 0xe6, 0x98, 0xaf, 0x20, 0x6a, 0x75, 0x6e, 0x65, 0x61, 0x6e, 0x64, 0x67, 0x72, 0x65, 0x65, 0x6e, 0x2e])).toBe(sm3('hello world! 我是 juneandgreen.'))
+    expect(sm3(Uint8Array.from([0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0x20, 0xe6, 0x88, 0x91, 0xe6, 0x98, 0xaf, 0x20, 0x6a, 0x75, 0x6e, 0x65, 0x61, 0x6e, 0x64, 0x67, 0x72, 0x65, 0x65, 0x6e, 0x2e]))).toBe(sm3('hello world! 我是 juneandgreen.'))
 
     // 碰撞 case
     expect(sm3('丧丙上䠉䰋不亐乑')).toBe('382f78a3065187c40152d2f5ca283f8f4bf148909c763cfbdfa7efb943016552')
@@ -36,7 +37,7 @@ test('sm3: must match the result', () => {
 })
 
 test('sm3: long text', () => {
-    const input = fs.readFileSync(path.join(__dirname, './test.jpg'))
+    const input = readFileSync(join(__dirname, './test.jpg'))
     expect(sm3(input)).toBe('585084878e61b6b1bed61207142ea0313fa3c0c8211e44871bdaa637632ccff0')
 })
 
@@ -45,26 +46,26 @@ test('sm3: hmac', () => {
         key: 'daac25c1512fe50f79b0e4526b93f5c0e1460cef40b6dd44af13caec62e8c60e0d885f3c6d6fb51e530889e6fd4ac743a6d332e68a0f2a3923f42585dceb93e9',
     })).toBe('5c690e2b822a514017f1ccb9a61b6738714dbd17dbd6fdbc2fa662d122b6885d')
 
-    expect(sm3([0x31, 0x32, 0x33, 0x34, 0x35, 0x36], {
+    expect(sm3(Uint8Array.from([0x31, 0x32, 0x33, 0x34, 0x35, 0x36]), {
         key: '31323334353637383930',
     })).toBe('bc1f71eef901223ae7a9718e3ae1dbf97353c81acb429b491bbdbefd2195b95e')
 
-    const bytes8 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]
-
+    const bytes8 = Uint8Array.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
+    
     // 32 字节
-    const bytes32 = [].concat(bytes8, bytes8, bytes8, bytes8)
+    const bytes32 = concatArray(bytes8, bytes8, bytes8, bytes8)
     expect(sm3(bytes32, {
         key: bytes32,
     })).toBe('41e6589cde89b4f8c810a820c2fb6f0ad86bf2c136a19cfb3a5c0835f598e07b')
 
     // 64 字节
-    const bytes64 = [].concat(bytes32, bytes32)
+    const bytes64 = concatArray(bytes32, bytes32)
     expect(sm3(bytes64, {
         key: bytes64,
     })).toBe('d6fb17c240930a21996373aa9fc0b1092931b016640809297911cd3f8cc9dcdd')
 
     // 128 字节
-    const bytes128 = [].concat(bytes64, bytes64)
+    const bytes128 = concatArray(bytes64, bytes64)
     expect(sm3(bytes128, {
         key: bytes128,
     })).toBe('d374f8adb0e9d1f12de94c1406fe8b2d53f84129e033f0d269400de8e8e7ca1a')
