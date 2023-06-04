@@ -37,7 +37,7 @@ export function doEncrypt(msg: string | Uint8Array, publicKey: string, cipherMod
   const nextT = () => {
     // (1) Hai = hash(z || ct)
     // (2) ct++
-    t = sm3(new Uint8Array([...z, ct >> 24 & 0x00ff, ct >> 16 & 0x00ff, ct >> 8 & 0x00ff, ct & 0x00ff]))
+    t = sm3(Uint8Array.from([...z, ct >> 24 & 0x00ff, ct >> 16 & 0x00ff, ct >> 8 & 0x00ff, ct & 0x00ff]))
     ct++
     offset = 0
   }
@@ -84,7 +84,7 @@ export function doDecrypt(encryptData: string, privateKey: string, cipherMode = 
   const nextT = () => {
     // (1) Hai = hash(z || ct)
     // (2) ct++
-    t = sm3(new Uint8Array([...z, ct >> 24 & 0x00ff, ct >> 16 & 0x00ff, ct >> 8 & 0x00ff, ct & 0x00ff]))
+    t = sm3(Uint8Array.from([...z, ct >> 24 & 0x00ff, ct >> 16 & 0x00ff, ct >> 8 & 0x00ff, ct & 0x00ff]))
     ct++
     offset = 0
   }

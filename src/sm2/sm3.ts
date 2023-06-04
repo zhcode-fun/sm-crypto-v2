@@ -61,7 +61,7 @@ export function sm3(array: Uint8Array) {
       lenString = ''
     }
   }
-  const m = new Uint8Array([...array, 0x80, ...kArr, ...lenArr])
+  const m = Uint8Array.from([...array, 0x80, ...kArr, ...lenArr])
   const dataView = new DataView(m.buffer, 0)
 
   // 迭代压缩
