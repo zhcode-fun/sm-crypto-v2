@@ -1,6 +1,6 @@
 # sm-crypto
 
-国密算法sm2、sm3和sm4的js实现。
+国密算法sm2、sm3和sm4的 ts 实现。使用 Uint8Array 代替 Array。
 
 ## 安装
 
