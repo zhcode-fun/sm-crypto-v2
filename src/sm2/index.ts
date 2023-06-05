@@ -12,7 +12,7 @@ const C1C2C3 = 0
  */
 export function doEncrypt(msg: string | Uint8Array, publicKey: string, cipherMode = 1) {
 
-  const msgArr = typeof msg === 'string' ? hexToArray(utf8ToHex(msg)) : msg
+  const msgArr = typeof msg === 'string' ? hexToArray(utf8ToHex(msg)) : Uint8Array.from(msg)
   const publicKeyPoint = getGlobalCurve().decodePointHex(publicKey) // 先将公钥转成点
 
   const keypair = generateKeyPairHex()
@@ -227,7 +227,7 @@ export function getHash(hashHex: string, publicKey: string, userId = '1234567812
 
   const entl = userId.length * 4
 
-  const z = sm3(concatArray(new Uint8Array([entl & 0x00ff, entl >> 8 & 0x00ff]), data))
+  const z = sm3(concatArray(new Uint8Array([entl >> 8 & 0x00ff, entl & 0x00ff]), data))
 
   // e = hash(z || msg)
   return arrayToHex(Array.from(sm3(concatArray(z, hexToArray(hashHex)))))
