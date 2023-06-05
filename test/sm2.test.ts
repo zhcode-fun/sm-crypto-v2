@@ -82,7 +82,7 @@ describe('sm2: encrypt and decrypt data', () => {
 })
 
 describe('sm2: sign data and verify sign', () => {
-    it('signature and generate ecc point', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
+    it('signature and generate ec point', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
         for (const publicKey of [unCompressedPublicKey, compressedPublicKey]) {
             // 纯签名 + 生成椭圆曲线点
             let sigValueHex = sm2.doSignature(msgString, privateKey)
@@ -100,7 +100,7 @@ describe('sm2: sign data and verify sign', () => {
             expect(verifyResult2).toBe(true)
         }
     })
-    it('signature and generate ecc point with asn.1 der encoding', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
+    it('signature and generate ec point with asn.1 der encoding', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
         for (const publicKey of [unCompressedPublicKey, compressedPublicKey]) {
 
             // 纯签名 + 生成椭圆曲线点 + der编解码
@@ -113,7 +113,7 @@ describe('sm2: sign data and verify sign', () => {
             expect(verifyResult3).toBe(true)
         }
     })
-    it('signature and generate ecc point with sm3 hash for 10 times', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
+    it('signature and generate ec point with sm3 hash for 10 times', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
         for (const publicKey of [unCompressedPublicKey, compressedPublicKey]) {
             // 纯签名 + 生成椭圆曲线点 + sm3杂凑
             let sigValueHex4 = sm2.doSignature(msgString, privateKey, {
@@ -136,7 +136,7 @@ describe('sm2: sign data and verify sign', () => {
 
         }
     })
-    it('signature and generate ecc point with sm3 hash without public key inferring', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
+    it('signature and generate ec point with sm3 hash without public key inferring', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
         for (const publicKey of [unCompressedPublicKey, compressedPublicKey]) {
             // 纯签名 + 生成椭圆曲线点 + sm3杂凑（不做公钥推导）
             let sigValueHex5 = sm2.doSignature(msgString, privateKey, {
@@ -150,7 +150,7 @@ describe('sm2: sign data and verify sign', () => {
             expect(verifyResult5).toBe(true)
         }
     })
-    it('signature and generate ecc point with sm3 hash and userId without public key inferring', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
+    it('signature and generate ec point with sm3 hash and userId without public key inferring', ({ unCompressedPublicKey, compressedPublicKey, privateKey }) => {
         for (const publicKey of [unCompressedPublicKey, compressedPublicKey]) {
             // 纯签名 + 生成椭圆曲线点 + sm3杂凑 + 不做公钥推 + 添加 userId
             let sigValueHex6 = sm2.doSignature(msgString, privateKey, {

@@ -1,5 +1,5 @@
 {
-  "name": "sm-crypto",
+  "name": "sm-crypto-v2",
   "version": "0.3.12",
   "description": "sm-crypto",
   "main": "src/index.js",

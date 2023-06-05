@@ -148,9 +148,12 @@ function sms4KeyExt(key: Uint8Array, roundKey: Uint32Array, cryptFlag: 0 | 1) {
   }
 }
 export interface SM4Options {
-  padding?: 'pkcs#7' | 'pkcs#5' | 'none' | null, 
-  mode?: 'cbc' | 'ecb', iv?: Uint8Array | string, output?: 'string' | 'array'
+  padding?: 'pkcs#7' | 'pkcs#5' | 'none' | null
+  mode?: 'cbc' | 'ecb'
+  iv?: Uint8Array | string
+  output?: 'string' | 'array'
 }
+
 export function sm4(inArray: Uint8Array | string, key: Uint8Array | string, cryptFlag: 0 | 1, options: SM4Options = {}) {
   let {
     padding = 'pkcs#7',
@@ -269,9 +272,14 @@ export function sm4(inArray: Uint8Array | string, key: Uint8Array | string, cryp
   }
 }
 
+export function encrypt(inArray: Uint8Array | string, key: Uint8Array | string, options?: { output: 'array' } | SM4Options): Uint8Array
+export function encrypt(inArray: Uint8Array | string, key: Uint8Array | string, options?: { output: 'string' } | SM4Options): string
 export function encrypt(inArray: Uint8Array | string, key: Uint8Array | string, options: SM4Options = {}) {
   return sm4(inArray, key, 1, options)
 }
+
+export function decrypt(inArray: Uint8Array | string, key: Uint8Array | string, options?: { output: 'array' } | SM4Options): Uint8Array
+export function decrypt(inArray: Uint8Array | string, key: Uint8Array | string, options?: { output: 'string' } | SM4Options): string
 export function decrypt(inArray: Uint8Array | string, key: Uint8Array | string, options: SM4Options = {}) {
   return sm4(inArray, key, 0, options)
 }

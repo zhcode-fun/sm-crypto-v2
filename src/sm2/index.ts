@@ -58,6 +58,12 @@ export function doEncrypt(msg: string | Uint8Array, publicKey: string, cipherMod
 /**
  * 解密
  */
+export function doDecrypt(encryptData: string, privateKey: string, cipherMode?: number, options?: {
+  output: 'array'
+}): Uint8Array
+export function doDecrypt(encryptData: string, privateKey: string, cipherMode?: number, options?: {
+  output: 'string'
+}): string
 export function doDecrypt(encryptData: string, privateKey: string, cipherMode = 1, {
   output = 'string',
 } = {}) {
@@ -164,7 +170,7 @@ export function doSignature(msg: Uint8Array | string, privateKey: string, option
  * 验签
  */
 export function doVerifySignature(msg: string | Uint8Array, signHex: string, publicKey: string, options: { der?: boolean, hash?: boolean, userId?: string } = {}) {
-  let hashHex = typeof msg === 'string' ? utf8ToHex(msg) : arrayToHex(Array.from(msg))
+  let hashHex: string
   const {
     hash,
     der,
@@ -172,7 +178,9 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
   } = options
   if (hash) {
     // sm3杂凑
-    hashHex = getHash(hashHex, publicKey, userId)
+    hashHex = getHash(typeof msg === 'string' ? utf8ToHex(msg) : msg, publicKey, userId)
+  } else {
+    hashHex = typeof msg === 'string' ? utf8ToHex(msg) : arrayToHex(Array.from(msg))
   }
 
   let r: BigInteger;
@@ -206,7 +214,7 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
 /**
  * sm3杂凑算法
  */
-export function getHash(hashHex: string, publicKey: string, userId = '1234567812345678') {
+export function getHash(hashHex: string | Uint8Array, publicKey: string, userId = '1234567812345678') {
   // z = hash(entl || userId || a || b || gx || gy || px || py)
   userId = utf8ToHex(userId)
   const a = leftPad(G.curve.a.toBigInteger().toRadix(16), 64)
@@ -230,7 +238,7 @@ export function getHash(hashHex: string, publicKey: string, userId = '1234567812
   const z = sm3(concatArray(new Uint8Array([entl >> 8 & 0x00ff, entl & 0x00ff]), data))
 
   // e = hash(z || msg)
-  return arrayToHex(Array.from(sm3(concatArray(z, hexToArray(hashHex)))))
+  return arrayToHex(Array.from(sm3(concatArray(z, typeof hashHex === 'string' ? hexToArray(hashHex) : hashHex))))
 }
 
 /**
