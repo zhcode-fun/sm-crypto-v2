@@ -16,7 +16,7 @@ const THREE = new BigInteger('3')
 /**
  * 椭圆曲线域元素
  */
-class ECFieldElementFp {
+export class ECFieldElementFp {
   constructor(public q: BigInteger, public x: BigInteger) {
     // TODO if (x.compareTo(q) >= 0) error
   }
@@ -46,28 +46,28 @@ class ECFieldElementFp {
   /**
    * 相加
    */
-  add(b) {
+  add(b: ECFieldElementFp) {
     return new ECFieldElementFp(this.q, this.x.add(b.toBigInteger()).mod(this.q))
   }
 
   /**
    * 相减
    */
-  subtract(b) {
+  subtract(b: ECFieldElementFp) {
     return new ECFieldElementFp(this.q, this.x.subtract(b.toBigInteger()).mod(this.q))
   }
 
   /**
    * 相乘
    */
-  multiply(b) {
+  multiply(b: ECFieldElementFp) {
     return new ECFieldElementFp(this.q, this.x.multiply(b.toBigInteger()).mod(this.q))
   }
 
   /**
    * 相除
    */
-  divide(b) {
+  divide(b: ECFieldElementFp) {
     return new ECFieldElementFp(this.q, this.x.multiply(b.toBigInteger().modInverse(this.q)).mod(this.q))
   }
 
@@ -79,7 +79,7 @@ class ECFieldElementFp {
   }
 }
 
-class ECPointFp {
+export class ECPointFp {
   zinv: BigInteger | null
   z: BigInteger
   constructor(public curve: ECCurveFp, public x: ECFieldElementFp | null, public y: ECFieldElementFp | null, z?: BigInteger) {
