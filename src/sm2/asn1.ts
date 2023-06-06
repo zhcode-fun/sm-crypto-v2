@@ -2,7 +2,7 @@
 
 import { BigInteger } from 'jsbn'
 
-function bigintToValue(bigint: BigInteger) {
+export function bigintToValue(bigint: BigInteger) {
   let h = bigint.toString(16)
   if (h[0] !== '-') {
     // 正数
