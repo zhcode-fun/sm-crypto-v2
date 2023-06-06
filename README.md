@@ -1,5 +1,9 @@
 # sm-crypto
 
+[![status](https://img.shields.io/github/actions/workflow/status/cubelrti/sm-crypto-v2/test.yml?branch=master)](https://github.com/cubelrti/sm-crypto-v2/actions)
+[![cov](https://cubelrti.github.io/sm-crypto-v2/badges/coverage.svg)](https://github.com/cubelrti/sm-crypto-v2/actions)
+
+
 国密算法 sm2、sm3 和 sm4 的 TypeScript 实现。参数支持 TypedArray，导出 esm/cjs。
 
 ## 安装
