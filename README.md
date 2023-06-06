@@ -1,11 +1,11 @@
 # sm-crypto
 
-国密算法sm2、sm3和sm4的 ts 实现。使用 Uint8Array 代替 Array。
+国密算法 sm2、sm3 和 sm4 的 TypeScript 实现。参数支持 TypedArray，导出 esm/cjs。
 
 ## 安装
 
 ```bash
-npm install --save sm-crypto
+npm install --save sm-crypto-v2
 ```
 
 ## sm2
@@ -13,7 +13,7 @@ npm install --save sm-crypto
 ### 获取密钥对
 
 ```js
-const sm2 = require('sm-crypto').sm2
+import { sm2 } from 'sm-crypto-v2'
 
 let keypair = sm2.generateKeyPairHex()
 
@@ -36,7 +36,7 @@ verifyResult = sm2.verifyPublicKey(compressedPublicKey) // 验证公钥
 ### 加密解密
 
 ```js
-const sm2 = require('sm-crypto').sm2
+import { sm2 } from 'sm-crypto-v2'
 const cipherMode = 1 // 1 - C1C3C2，0 - C1C2C3，默认为1
 
 let encryptData = sm2.doEncrypt(msgString, publicKey, cipherMode) // 加密结果
@@ -51,8 +51,7 @@ decryptData = sm2.doDecrypt(encryptData, privateKey, cipherMode, {output: 'array
 > ps：理论上来说，只做纯签名是最快的。
 
 ```js
-const sm2 = require('sm-crypto').sm2
-
+import { sm2 } from 'sm-crypto-v2'
 // 纯签名 + 生成椭圆曲线点
 let sigValueHex = sm2.doSignature(msg, privateKey) // 签名
 let verifyResult = sm2.doVerifySignature(msg, sigValueHex, publicKey) // 验签结果
@@ -105,16 +104,14 @@ let verifyResult6 = sm2.doVerifySignature(msgString, sigValueHex6, publicKey, {
 ### 获取椭圆曲线点
 
 ```js
-const sm2 = require('sm-crypto').sm2
-
+import { sm2 } from 'sm-crypto-v2'
 let point = sm2.getPoint() // 获取一个椭圆曲线点，可在sm2签名时传入
 ```
 
 ## sm3
 
 ```js
-const sm3 = require('sm-crypto').sm3
-
+import { sm3 } from 'sm-crypto-v2'
 let hashData = sm3('abc') // 杂凑
 
 // hmac
@@ -128,7 +125,7 @@ hashData = sm3('abc', {
 ### 加密
 
 ```js
-const sm4 = require('sm-crypto').sm4
+import { sm4 } from 'sm-crypto-v2'
 const msg = 'hello world! 我是 juneandgreen.' // 可以为 utf8 串或字节数组
 const key = '0123456789abcdeffedcba9876543210' // 可以为 16 进制串或字节数组，要求为 128 比特
 
@@ -141,7 +138,7 @@ let encryptData = sm4.encrypt(msg, key, {mode: 'cbc', iv: 'fedcba987654321001234
 ### 解密
 
 ```js
-const sm4 = require('sm-crypto').sm4
+import { sm4 } from 'sm-crypto-v2'
 const encryptData = '0e395deb10f6e8a17e17823e1fd9bd98a1bff1df508b5b8a1efb79ec633d1bb129432ac1b74972dbe97bab04f024e89c' // 可以为 16 进制串或字节数组
 const key = '0123456789abcdeffedcba9876543210' // 可以为 16 进制串或字节数组，要求为 128 比特
 
@@ -153,9 +150,11 @@ let decryptData = sm4.decrypt(encryptData, key, {mode: 'cbc', iv: 'fedcba9876543
 
 ## 其他实现
 
+* 原 js 版本：[https://github.com/JuneAndGreen/sm-crypto](https://github.com/JuneAndGreen/sm-crypto)
 * 小程序移植版：[https://github.com/wechat-miniprogram/sm-crypto](https://github.com/wechat-miniprogram/sm-crypto)
 * java 实现（感谢 @antherd 提供）：[https://github.com/antherd/sm-crypto](https://github.com/antherd/sm-crypto)
 * dart 实现（感谢 @luckykellan 提供）：[https://github.com/luckykellan/dart_sm](https://github.com/luckykellan/dart_sm)
+
 ## 协议
 
 MIT
