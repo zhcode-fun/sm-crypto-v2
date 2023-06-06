@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JuneAndGreen/sm-crypto.git"
+    "url": "git+https://github.com/Cubelrti/sm-crypto-v2"
   },
   "keywords": [
     "sm",
@@ -40,6 +40,7 @@
     "@typescript-eslint/parser": "^5.23.0",
     "@vitest/coverage-c8": "^0.31.0",
     "@vitest/coverage-istanbul": "^0.31.0",
+    "@vitest/expect": "^0.31.4",
     "@vitest/ui": "^0.31.0",
     "conventional-changelog-cli": "^2.2.2",
     "eslint": "^8.15.0",
@@ -49,6 +50,7 @@
     "standard-version": "^9.5.0",
     "tsup": "^5.12.7",
     "typescript": "^4.7.2",
+    "vite": "^4.3.9",
     "vitest": "^0.31.0"
   }
 }
