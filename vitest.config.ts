@@ -11,7 +11,7 @@ export default defineConfig(({ command, mode }) => {
         reporter: [
           ['text'],
           ['html'],
-          ['json', { 'file': 'coverage-summary.json' }],
+          ['json-summary'],
         ]
       }
     },
