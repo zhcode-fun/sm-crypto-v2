@@ -12,7 +12,6 @@ jobs:
         run: npm install
       - name: Test and Coverage
         run: npm run coverage  # or npm run coverage
-
       # Add this
       - name: Update Coverage Badge
         uses: we-cli/coverage-badge-action@main

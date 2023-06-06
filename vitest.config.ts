@@ -8,6 +8,11 @@ export default defineConfig(({ command, mode }) => {
       },
       coverage: {
         provider: 'istanbul',
+        reporter: [
+          ['text'],
+          ['html'],
+          ['json', { 'file': 'coverage-summary.json' }],
+        ]
       }
     },
     define: {
