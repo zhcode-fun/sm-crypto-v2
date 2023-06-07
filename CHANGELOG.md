@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.1.0...v1.2.0) (2023-06-07)
+
+
+### Features
+
+* **sm2:** use secure prng ([b8ba3bf](https://github.com/Cubelrti/sm-crypto-v2/commit/b8ba3bfc0f6948c60db65fd2efe284d0c46855e0))
+
 ## [1.1.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v0.3.15...v1.1.0) (2023-06-07)
 
 ### [0.3.15](https://github.com/Cubelrti/sm-crypto-v2/compare/v0.3.13...v0.3.15) (2023-06-07)
