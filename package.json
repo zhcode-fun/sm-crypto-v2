@@ -8,10 +8,10 @@
   "scripts": {
     "prepublish": "npm run build",
     "lint": "eslint \"src/**/*.js\" --fix",
-    "build": "tsup",
+    "build": "vitest run && tsup",
     "watch": "tsup --watch",
     "test": "vitest",
-    "release": "vitest run && standard-version && git push --follow-tags origin master",
+    "release": "npm run build && standard-version && git push --follow-tags origin master",
     "coverage": "vitest run --coverage"
   },
   "repository": {
