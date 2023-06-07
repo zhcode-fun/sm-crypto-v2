@@ -36,18 +36,19 @@ describe('sm2: generate keypair', () => {
         expect(sm2.comparePublicKeyHex(unCompressedPublicKey, unCompressedPublicKey)).toBe(true)
         expect(sm2.comparePublicKeyHex(compressedPublicKey, compressedPublicKey)).toBe(true)
     })
-
-    // 自定义随机数
-    const random: number[] = []
-    for (let i = 0; i < 20; i++) random.push(~~(Math.random() * 10))
-    const keypair2 = sm2.generateKeyPairHex(random.join(''))
-    expect(keypair2.publicKey.length).toBe(130)
-    expect(keypair2.privateKey.length).toBe(64)
-    const compressedPublicKey2 = sm2.compressPublicKeyHex(keypair2.publicKey)
-    expect(compressedPublicKey2.length).toBe(66)
-    expect(sm2.verifyPublicKey(keypair2.publicKey)).toBe(true)
-    expect(sm2.verifyPublicKey(compressedPublicKey2)).toBe(true)
-    expect(sm2.comparePublicKeyHex(keypair2.publicKey, compressedPublicKey2)).toBe(true)
+    it('random generated keypair', () => {
+        // 自定义随机数
+        const random: number[] = []
+        for (let i = 0; i < 20; i++) random.push(~~(Math.random() * 10))
+        const keypair2 = sm2.generateKeyPairHex(random.join(''))
+        expect(keypair2.publicKey.length).toBe(130)
+        expect(keypair2.privateKey.length).toBe(64)
+        const compressedPublicKey2 = sm2.compressPublicKeyHex(keypair2.publicKey)
+        expect(compressedPublicKey2.length).toBe(66)
+        expect(sm2.verifyPublicKey(keypair2.publicKey)).toBe(true)
+        expect(sm2.verifyPublicKey(compressedPublicKey2)).toBe(true)
+        expect(sm2.comparePublicKeyHex(keypair2.publicKey, compressedPublicKey2)).toBe(true)
+    })
 })
 
 describe('sm2: encrypt and decrypt data', () => {

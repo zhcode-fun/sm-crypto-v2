@@ -6,6 +6,13 @@
 
 国密算法 sm2、sm3 和 sm4 的 TypeScript 实现。参数支持 TypedArray，导出 esm/cjs。
 
+## 特性
+
+- SM2 底层改用 `noble-curves`，性能提升接近4倍
+- 完整的类型支持
+- 移除原有 `jsbn` 依赖，改用 BigInt 支持
+- 通过所有之前的单元测试
+
 ## 安装
 
 ```bash
