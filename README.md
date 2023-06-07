@@ -8,10 +8,11 @@
 
 ## 特性
 
-- SM2 底层改用 `noble-curves`，性能提升接近4倍
+- SM2 底层改用 `noble-curves`，性能提升接近4倍，[noble-curves 文档](https://github.com/paulmillr/noble-curves)
 - 完整的类型支持
-- 移除原有 `jsbn` 依赖，改用 BigInt 支持
-- 通过所有之前的单元测试
+- 移除原有 `jsbn` 依赖，改用原生 BigInt 支持
+- 通过所有之前的单元测试，包括 SM2、SM3 和 SM4
+- 自动使用最优的安全随机数实现，不使用 `random` 和 `Date.now` 模拟
 
 ## 安装
 
