@@ -37,10 +37,12 @@ privateKey = keypair.privateKey // 私钥
 const compressedPublicKey = sm2.compressPublicKeyHex(publicKey) // compressedPublicKey 和 publicKey 等价
 sm2.comparePublicKeyHex(publicKey, compressedPublicKey) // 判断公钥是否等价
 
-// 自定义随机数，参数会直接透传给 jsbn 库的 BigInteger 构造器
+// 自定义随机数，参数会直接透传给 BigInt 构造器
 // 注意：开发者使用自定义随机数，需要自行确保传入的随机数符合密码学安全
 let keypair2 = sm2.generateKeyPairHex('123123123123123')
-let keypair3 = sm2.generateKeyPairHex(256, SecureRandom)
+
+// 初始化随机数池，在某些场景下可能会用到
+await sm2.initRNGPool()
 
 let verifyResult = sm2.verifyPublicKey(publicKey) // 验证公钥
 verifyResult = sm2.verifyPublicKey(compressedPublicKey) // 验证公钥
@@ -167,6 +169,30 @@ let decryptData = sm4.decrypt(encryptData, key, {mode: 'cbc', iv: 'fedcba9876543
 * 小程序移植版：[https://github.com/wechat-miniprogram/sm-crypto](https://github.com/wechat-miniprogram/sm-crypto)
 * java 实现（感谢 @antherd 提供）：[https://github.com/antherd/sm-crypto](https://github.com/antherd/sm-crypto)
 * dart 实现（感谢 @luckykellan 提供）：[https://github.com/luckykellan/dart_sm](https://github.com/luckykellan/dart_sm)
+
+## 性能
+
+CPU: Apple M1 Pro
+
+```
+❯ npm run bench
+
+> benchmark@0.1.0 bench
+> node index.js
+
+Benchmarking
+
+=== sm-crypto ===
+sm2 generateKeyPair x 134 ops/sec @ 7ms/op ± 4.12% (min: 6ms, max: 21ms)
+sm2 encrypt x 71 ops/sec @ 14ms/op
+sm2 sign x 139 ops/sec @ 7ms/op
+sm2 verify x 70 ops/sec @ 14ms/op
+=== sm-crypto-v2 ===
+sm2 generateKeyPair x 2,835 ops/sec @ 352μs/op ± 6.34% (min: 286μs, max: 1ms)
+sm2 encrypt x 253 ops/sec @ 3ms/op ± 2.11% (min: 3ms, max: 24ms)
+sm2 sign x 3,186 ops/sec @ 313μs/op ± 1.26% (min: 277μs, max: 854μs)
+sm2 verify x 258 ops/sec @ 3ms/op
+```
 
 ## 协议
 

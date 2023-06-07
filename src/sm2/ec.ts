@@ -19,11 +19,14 @@ declare module wx {
   }): void;
 }
 
-const DEFAULT_PRNG_POOL_SIZE = 4096
+const DEFAULT_PRNG_POOL_SIZE = 16384
 let prngPool = new Uint8Array(0)
-
-async function FillPRNGPoolIfNeeded() {
-  if ('crypto' in globalThis) return // no need to use pooling
+let _syncCrypto: typeof import('crypto')['webcrypto']
+export async function initRNGPool() {
+  if ('crypto' in globalThis) {
+    _syncCrypto = globalThis.crypto
+    return // no need to use pooling
+  }
   if (prngPool.length > DEFAULT_PRNG_POOL_SIZE / 2) return // there is sufficient number
   // we always populate full pool size
   // since numbers may be consumed during micro tasks.
@@ -40,8 +43,9 @@ async function FillPRNGPoolIfNeeded() {
     // check if node, use webcrypto if available
     try {
       const crypto = await import(/* webpackIgnore: true */ 'crypto');
+      _syncCrypto = crypto.webcrypto
       const array = new Uint8Array(DEFAULT_PRNG_POOL_SIZE);
-      crypto.webcrypto.getRandomValues(array);
+      _syncCrypto.getRandomValues(array);
       prngPool = array;
     } catch (error) {
       throw new Error('no available csprng, abort.');
@@ -49,24 +53,25 @@ async function FillPRNGPoolIfNeeded() {
   }
 }
 
-FillPRNGPoolIfNeeded()
+initRNGPool()
 
 function consumePool(length: number): Uint8Array {
   if (prngPool.length > length) {
     const prng = prngPool.slice(0, length)
     prngPool = prngPool.slice(length)
-    FillPRNGPoolIfNeeded()
+    initRNGPool()
     return prng
   } else {
-    throw new Error('random number pool is insufficient, prevent getting too long random values or too often.')
+    throw new Error('random number pool is not ready or insufficient, prevent getting too long random values or too often.')
   }
 }
 
 export function randomBytes(length = 0): Uint8Array {
   const array = new Uint8Array(length);
-  if ('crypto' in globalThis) {
-    return globalThis.crypto.getRandomValues(array);
+  if (_syncCrypto) {
+    return _syncCrypto.getRandomValues(array);
   } else {
+    // no sync crypto available, use async pool
     const result = consumePool(length)
     return result
   }

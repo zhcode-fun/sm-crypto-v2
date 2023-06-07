@@ -2,11 +2,13 @@
 import { encodeDer, decodeDer } from './asn1'
 import { arrayToHex, arrayToUtf8, concatArray, generateKeyPairHex, hexToArray, leftPad, utf8ToHex } from './utils'
 import { sm3 } from './sm3'
-export * from './utils'
 import * as mod from '@noble/curves/abstract/modular';
 import * as utils from '@noble/curves/abstract/utils';
 import { sm2Curve } from './ec';
 import { ONE, ZERO } from './bn';
+
+export * from './utils'
+export { initRNGPool } from './ec'
 
 // const { G, curve, n } = generateEcparam()
 const C1C2C3 = 0
