@@ -3,6 +3,7 @@ import { Field } from '@noble/curves/abstract/modular'; // finite field for mod 
 import { hmac, sm3 } from './sm3'
 import { utf8ToArray } from '@/sm3';
 import { concatArray } from './utils';
+import { ONE } from './bn';
 
 /**
  * 安全随机数发生器
@@ -43,7 +44,7 @@ async function FillPRNGPoolIfNeeded() {
       crypto.webcrypto.getRandomValues(array);
       prngPool = array;
     } catch (error) {
-      throw new Error('no available csprng available, abort.');
+      throw new Error('no available csprng, abort.');
     }
   }
 }
@@ -70,8 +71,6 @@ export function randomBytes(length = 0): Uint8Array {
   }
 }
 
-
-
 export function createHash() {
   const hashC = (msg: Uint8Array | string): Uint8Array => sm3(typeof msg === 'string' ? utf8ToArray(msg) : msg)
   hashC.outputLen = 256;
@@ -86,7 +85,7 @@ export const sm2Curve = weierstrass({
   a: BigInt('115792089210356248756420345214020892766250353991924191454421193933289684991996'),
   b: BigInt('18505919022281880113072981827955639221458448578012075254857346196103069175443'),
   Fp: sm2Fp,
-  h: BigInt(1),
+  h: ONE,
   n: BigInt('115792089210356248756420345214020892766061623724957744567843809356293439045923'),
   Gx: BigInt('22963146547237050559479531362550074578802567295341616970375194840604139615431'),
   Gy: BigInt('85132369209828568825618990617112496413088388631904505083283536607588877201568'),
