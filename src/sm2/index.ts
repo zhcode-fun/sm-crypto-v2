@@ -6,6 +6,7 @@ export * from './utils'
 import * as mod from '@noble/curves/abstract/modular';
 import * as utils from '@noble/curves/abstract/utils';
 import { sm2Curve } from './ec';
+import { ONE, ZERO } from './bn';
 
 // const { G, curve, n } = generateEcparam()
 const C1C2C3 = 0
@@ -165,12 +166,12 @@ export function doSignature(msg: Uint8Array | string, privateKey: string, option
       // r = (e + x1) mod n
       // r = e.add(point.x1).mod(n)
       r = mod.mod(e + point.x1, sm2Curve.CURVE.n)
-    } while (r === 0n || (r + k) === sm2Curve.CURVE.n)
+    } while (r === ZERO || (r + k) === sm2Curve.CURVE.n)
 
     // s = ((1 + dA)^-1 * (k - r * dA)) mod n
     // s = dA.add(BigInteger.ONE).modInverse(n).multiply(k.subtract(r.multiply(dA))).mod(n)
-    s = mod.mod(mod.invert(dA + 1n, sm2Curve.CURVE.n) * (k - r * dA), sm2Curve.CURVE.n)
-  } while (s === 0n)
+    s = mod.mod(mod.invert(dA + ONE, sm2Curve.CURVE.n) * (k - r * dA), sm2Curve.CURVE.n)
+  } while (s === ZERO)
   if (der) return encodeDer(r, s) // asn.1 der 编码
   return leftPad(utils.numberToHexUnpadded(r), 64) + leftPad(utils.numberToHexUnpadded(s), 64)
 }
@@ -214,7 +215,7 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
   // const t = r.add(s).mod(n)
   const t = mod.mod(r + s, sm2Curve.CURVE.n)
 
-  if (t === 0n) return false
+  if (t === ZERO) return false
 
   // x1y1 = s * G + t * PA
   // const x1y1 = G.multiply(s).add(PA.multiply(t))

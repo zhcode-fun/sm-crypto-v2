@@ -1,6 +1,7 @@
 /* eslint-disable class-methods-use-this */
 
 import * as utils from '@noble/curves/abstract/utils';
+import { ONE } from './bn';
 
 export function bigintToValue(bigint: bigint) {
   let h = bigint.toString(16)
@@ -21,7 +22,7 @@ export function bigintToValue(bigint: bigint) {
 
     // 对绝对值取反，加1
     
-    let output = (mask ^ bigint) + 1n
+    let output = (mask ^ bigint) + ONE
     h = output.toString(16).replace(/^-/, '')
   }
   return h

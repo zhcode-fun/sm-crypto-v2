@@ -3,6 +3,7 @@ import * as utils from '@noble/curves/abstract/utils';
 
 import { sm2Curve, sm2Fp } from './ec';
 import { mod } from '@noble/curves/abstract/modular';
+import { TWO, ZERO } from './bn';
 
 /**
  * 生成密钥对：publicKey = privateKey * G
@@ -35,7 +36,7 @@ export function compressPublicKeyHex(s: string) {
   const y = utils.hexToNumber(s.substring(len + 2, len + len + 2))
 
   let prefix = '03'
-  if (mod(y, 2n) === 0n) prefix = '02'
+  if (mod(y, TWO) === ZERO) prefix = '02'
   return prefix + xHex
 }
 
