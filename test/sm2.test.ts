@@ -36,6 +36,13 @@ describe('sm2: generate keypair', () => {
         expect(sm2.comparePublicKeyHex(unCompressedPublicKey, unCompressedPublicKey)).toBe(true)
         expect(sm2.comparePublicKeyHex(compressedPublicKey, compressedPublicKey)).toBe(true)
     })
+    it('random generated different keypair', () => {
+        const keypair1 = sm2.generateKeyPairHex()
+        const keypair2 = sm2.generateKeyPairHex()
+        console.log(keypair1, keypair2)
+        expect(keypair1.privateKey === keypair2.privateKey).toBeFalsy()
+        expect(keypair1.publicKey === keypair2.publicKey).toBeFalsy()
+    })
     it('random generated keypair', () => {
         // 自定义随机数
         const random: number[] = []

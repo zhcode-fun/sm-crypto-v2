@@ -20,7 +20,7 @@ declare module wx {
 }
 
 const DEFAULT_PRNG_POOL_SIZE = 4096
-let prngPool = new Uint8Array(DEFAULT_PRNG_POOL_SIZE)
+let prngPool = new Uint8Array(0)
 
 async function FillPRNGPoolIfNeeded() {
   if ('crypto' in globalThis) return // no need to use pooling
@@ -67,7 +67,8 @@ export function randomBytes(length = 0): Uint8Array {
   if ('crypto' in globalThis) {
     return globalThis.crypto.getRandomValues(array);
   } else {
-    return consumePool(length)
+    const result = consumePool(length)
+    return result
   }
 }
 

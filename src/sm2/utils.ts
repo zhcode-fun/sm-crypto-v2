@@ -3,12 +3,13 @@ import * as utils from '@noble/curves/abstract/utils';
 
 import { sm2Curve, sm2Fp } from './ec';
 import { mod } from '@noble/curves/abstract/modular';
-import { TWO, ZERO } from './bn';
+import { ONE, TWO, ZERO } from './bn';
 
 /**
  * 生成密钥对：publicKey = privateKey * G
  */
-export function generateKeyPairHex() {
+export function generateKeyPairHex(str?: string) {
+  const privateKey = str ? utils.numberToBytesBE((mod(BigInt(str), ONE) + ONE), 32) : sm2Curve.utils.randomPrivateKey()
   // const random = typeof a === 'string' ? new BigInteger(a, b) :
   //   a ? new BigInteger(a, b!, c!) : new BigInteger(n.bitLength(), rng)
   // const d = random.mod(n.subtract(BigInteger.ONE)).add(BigInteger.ONE) // 随机数
@@ -18,7 +19,6 @@ export function generateKeyPairHex() {
   // const Px = leftPad(P.getX().toBigInteger().toString(16), 64)
   // const Py = leftPad(P.getY().toBigInteger().toString(16), 64)
   // const publicKey = '04' + Px + Py
-  const privateKey = sm2Curve.utils.randomPrivateKey();
   const publicKey = sm2Curve.getPublicKey(privateKey, false);
   const privPad = leftPad(utils.bytesToHex(privateKey), 64)
   const pubPad = leftPad(utils.bytesToHex(publicKey), 64)
