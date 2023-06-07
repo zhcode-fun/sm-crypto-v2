@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.2.2...v1.3.0) (2023-06-07)
+
+
+### Features
+
+* **sm2:** add benchmark and optimize rng pooling ([b162377](https://github.com/Cubelrti/sm-crypto-v2/commit/b1623774cc4374deea61499f13790c5e8b17041a))
+
 ### [1.2.2](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.2.1...v1.2.2) (2023-06-07)
 
 
