@@ -30,8 +30,7 @@
   "author": "june_01",
   "license": "MIT",
   "dependencies": {
-    "@noble/curves": "^1.1.0",
-    "@types/jsbn": "^1.2.30"
+    "@noble/curves": "^1.1.0"
   },
   "devDependencies": {
     "@swc/core": "^1.3.62",

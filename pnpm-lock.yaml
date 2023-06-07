@@ -4,9 +4,6 @@ dependencies:
   '@noble/curves':
     specifier: ^1.1.0
     version: 1.1.0
-  '@types/jsbn':
-    specifier: ^1.2.30
-    version: 1.2.30
 
 devDependencies:
   '@swc/core':
@@ -742,10 +739,6 @@ packages:
   /@types/istanbul-lib-coverage@2.0.4:
     resolution: {integrity: sha512-z/QT1XN4K4KYuslS23k62yDIDLwLFkzxOuMplDtObz0+y7VqJCaO2o+SPwHCvLFZh7xazvvoor2tA/hPz9ee7g==}
     dev: true
-
-  /@types/jsbn@1.2.30:
-    resolution: {integrity: sha512-VZouplBofjq3YOIHLNRBDxILs/nAArdTZ2QP1ooflyhS+yPExWsFE+i2paBIBb7OI3NJShfcde/nogqk4SPB/Q==}
-    dev: false
 
   /@types/json-schema@7.0.12:
     resolution: {integrity: sha512-Hr5Jfhc9eYOQNPYO5WLDq/n4jqijdHNlDXjuAQkkt+mWdQR+XJToOHrsD4cPaMXpn6KO7y2+wM8AZEs8VpBLVA==}
