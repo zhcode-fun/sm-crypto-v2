@@ -4,16 +4,16 @@
 [![status](https://img.shields.io/github/actions/workflow/status/cubelrti/sm-crypto-v2/test.yml?branch=master)](https://github.com/cubelrti/sm-crypto-v2/actions)
 [![cov](https://cubelrti.github.io/sm-crypto-v2/badges/coverage.svg)](https://github.com/cubelrti/sm-crypto-v2/actions)
 
-
 国密算法 sm2、sm3 和 sm4 的 TypeScript 实现。参数支持 TypedArray，导出 esm/cjs。
 
 ## 特性
 
-- SM2 底层改用 `noble-curves`，性能提升接近4倍，[noble-curves 文档](https://github.com/paulmillr/noble-curves)
-- 完整的类型支持
-- 移除原有 `jsbn` 依赖，改用原生 BigInt 支持
-- 通过所有之前的单元测试，包括 SM2、SM3 和 SM4
-- 自动使用最优的安全随机数实现，不使用 `random` 和 `Date.now` 模拟
+- ⚡ 基于 `noble-curves` 重构 SM2，性能提升近4倍。详见 [noble-curves 文档](https://github.com/paulmillr/noble-curves) 
+- 📘 使用 TypeScript 重写，提供全面的类型支持
+- 🔄 移除原有 `jsbn` 依赖，改用原生 BigInt
+- ✔️ 通过全部历史单元测试，包括 SM2、SM3 和 SM4
+- 🎲 自动选择最优的安全随机数实现，避免使用 `Math.random` 和 `Date.now` 进行模拟
+- 📚 同时导出 ES Module 和 CommonJS 两种格式，可按需使用
 
 ## 安装
 
