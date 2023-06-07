@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.15](https://github.com/Cubelrti/sm-crypto-v2/compare/v0.3.13...v0.3.15) (2023-06-07)
+
+
+### Features
+
+* **ec:** add unit tests ([e513d51](https://github.com/Cubelrti/sm-crypto-v2/commit/e513d519fa82491bbb6c823cf862a7840bbc379e))
+
 ### [0.3.14](https://github.com/Cubelrti/sm-crypto-v2/compare/v0.3.13...v0.3.14) (2023-06-07)
 
 
