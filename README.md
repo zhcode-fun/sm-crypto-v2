@@ -8,8 +8,8 @@
 
 ## 特性
 
-- ⚡ 基于 `noble-curves` 重构 SM2，性能提升近4倍。详见 [noble-curves 文档](https://github.com/paulmillr/noble-curves) 
-- 📘 使用 TypeScript 重写，提供全面的类型支持
+- ⚡ 基于 [`noble-curves` Abstract API](https://github.com/paulmillr/noble-curves#abstract-api) 重构 SM2，性能提升近4倍。详见 [noble-curves 文档](https://paulmillr.com/posts/noble-secp256k1-fast-ecc/) 
+- 📘 使用 TypeScript 实现，提供全面的类型支持
 - 🔄 移除原有 `jsbn` 依赖，改用原生 BigInt
 - ✔️ 通过全部历史单元测试，包括 SM2、SM3 和 SM4
 - 🎲 自动选择最优的安全随机数实现，避免使用 `Math.random` 和 `Date.now` 进行模拟

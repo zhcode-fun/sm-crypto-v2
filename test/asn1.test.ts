@@ -1,6 +1,5 @@
 import { bigintToValue } from "@/sm2/asn1"
 import { describe, it, expect } from "vitest"
-import { BigInteger } from 'jsbn'
 
 describe('bigintToValue', () => {
     it('should convert a BigInt to a string', () => {
