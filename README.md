@@ -1,6 +1,6 @@
 # sm-crypto-v2
 
-[![npm version](https://badge.fury.io/js/sm-crypto-v2.svg)](https://badge.fury.io/js/sm-crypto-v2)
+[![npm version](https://badge.fury.io/js/sm-crypto-v2.svg)](https://www.npmjs.com/package/sm-crypto-v2)
 [![status](https://img.shields.io/github/actions/workflow/status/cubelrti/sm-crypto-v2/test.yml?branch=master)](https://github.com/cubelrti/sm-crypto-v2/actions)
 [![cov](https://cubelrti.github.io/sm-crypto-v2/badges/coverage.svg)](https://github.com/cubelrti/sm-crypto-v2/actions)
 
