@@ -1,10 +1,7 @@
-import * as mod from '@noble/curves/abstract/modular';
 import { sm2Curve } from './ec';
-import { KeyPair, arrayToHex, concatArray, hexToArray, leftPad } from './utils';
+import { KeyPair, concatArray, hexToArray, leftPad } from './utils';
 import * as utils from '@noble/curves/abstract/utils';
-import { sm2Fp } from './ec';
 import { Field } from '@noble/curves/abstract/modular';
-import { p } from 'vitest/dist/types-dea83b3d';
 import { sm3 } from './sm3';
 
 export const field = Field(BigInt(sm2Curve.CURVE.n))
@@ -12,7 +9,6 @@ export const field = Field(BigInt(sm2Curve.CURVE.n))
 // 用到的常数
 const wPow2 = utils.hexToNumber('80000000000000000000000000000000')
 const wPow2Sub1 = utils.hexToNumber('7fffffffffffffffffffffffffffffff')
-const n = sm2Curve.CURVE.n
 
 // from sm2 sign part, extracted for code reusable.
 function hkdf(z: Uint8Array, keylen: number) {
@@ -73,7 +69,6 @@ export function calculateSharedKey(
 
   // 3.算 KDF
   // KA = KDF(xU || yU || ZA || ZB, kLen)
-
   const xU = hexToArray(leftPad(utils.numberToHexUnpadded(U.x), 64))
   const yU = hexToArray(leftPad(utils.numberToHexUnpadded(U.y), 64))
   const KA = hkdf(concatArray(xU, yU, ZA, ZB), sharedKeyLength)
