@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.3.0...v1.4.0) (2023-06-09)
+
+
+### Features
+
+* **sm2:** add experimental key agreement ([cdd00b4](https://github.com/Cubelrti/sm-crypto-v2/commit/cdd00b4e42bb5072e1dcb6e0301b6a2f18f53614))
+
 ## [1.3.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.2.2...v1.3.0) (2023-06-07)
 
 
