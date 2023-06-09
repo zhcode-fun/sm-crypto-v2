@@ -14,6 +14,7 @@
 - ✔️ 通过全部历史单元测试，包括 SM2、SM3 和 SM4
 - 🎲 自动选择最优的安全随机数实现，避免使用 `Math.random` 和 `Date.now` 进行模拟
 - 📚 同时导出 ES Module 和 CommonJS 两种格式，可按需使用
+- 🔑 新增密钥交换 API（实验性）
 
 ## 安装
 
@@ -174,9 +175,9 @@ const ephemeralKeypairA = sm2.generateKeyPairHex() // A 的临时秘钥对
 const ephemeralKeypairB = sm2.generateKeyPairHex() // B 的临时秘钥对
 
 // A 所需参数：A 的秘钥对，A 的临时秘钥对，B 的公钥，B 的临时秘钥公钥，AB 的身份ID，长度
-const sharedKeyFromA = sm2.calculateSharedKey(keyPairA, ephemeralKeypairA, keyPairB.publicKey, ephemeralKeypairB.publicKey, undefined, undefined, 233)
-// A 所需参数：B 的秘钥对，B 的临时秘钥对，A 的公钥，A 的临时秘钥公钥，AB 的身份ID，长度
-const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPairA.publicKey, ephemeralKeypairA.publicKey, undefined, undefined, 233)
+const sharedKeyFromA = sm2.calculateSharedKey(keyPairA, ephemeralKeypairA, keyPairB.publicKey, ephemeralKeypairB.publicKey, 'alice@yahoo.com', 'bob@yahoo.com', 233)
+// B 所需参数：B 的秘钥对，B 的临时秘钥对，A 的公钥，A 的临时秘钥公钥，AB 的身份ID，长度
+const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPairA.publicKey, ephemeralKeypairA.publicKey, 'alice@yahoo.com', 'bob@yahoo.com', 233)
 
 // expect(sharedKeyFromA).toEqual(sharedKeyFromB) => true
 ```
