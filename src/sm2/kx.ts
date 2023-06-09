@@ -1,10 +1,8 @@
-import { sm2Curve } from './ec';
+import { field, sm2Curve } from './ec';
 import { KeyPair, concatArray, hexToArray, leftPad } from './utils';
 import * as utils from '@noble/curves/abstract/utils';
-import { Field } from '@noble/curves/abstract/modular';
 import { sm3 } from './sm3';
 
-export const field = Field(BigInt(sm2Curve.CURVE.n))
 
 // 用到的常数
 const wPow2 = utils.hexToNumber('80000000000000000000000000000000')
@@ -58,7 +56,7 @@ export function calculateSharedKey(
   // x1_ = 2^w + (x1 & (2^w - 1))
   const x1_ = field.add(wPow2, (x1 & wPow2Sub1))
   // tA = (dA + x1b * rA) mod n
-  const tA = field.add(dA, field.mul(x1_, rA))
+  const tA = field.add(dA, field.mulN(x1_, rA))
 
   // 2.算 U
   // x2_ = 2^w + (x2 & (2^w - 1))

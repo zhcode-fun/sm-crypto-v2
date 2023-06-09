@@ -2,13 +2,12 @@
 import { encodeDer, decodeDer } from './asn1'
 import { arrayToHex, arrayToUtf8, concatArray, generateKeyPairHex, hexToArray, leftPad, utf8ToHex } from './utils'
 import { sm3 } from './sm3'
-import * as mod from '@noble/curves/abstract/modular';
 import * as utils from '@noble/curves/abstract/utils';
-import { sm2Curve } from './ec';
+import { field, sm2Curve } from './ec';
 import { ONE, ZERO } from './bn';
 
 export * from './utils'
-export { initRNGPool } from './ec'
+export { initRNGPool } from './rng'
 export { calculateSharedKey } from './kx'
 
 // const { G, curve, n } = generateEcparam()
@@ -168,12 +167,12 @@ export function doSignature(msg: Uint8Array | string, privateKey: string, option
 
       // r = (e + x1) mod n
       // r = e.add(point.x1).mod(n)
-      r = mod.mod(e + point.x1, sm2Curve.CURVE.n)
+      r = field.add(e, point.x1)
     } while (r === ZERO || (r + k) === sm2Curve.CURVE.n)
 
     // s = ((1 + dA)^-1 * (k - r * dA)) mod n
     // s = dA.add(BigInteger.ONE).modInverse(n).multiply(k.subtract(r.multiply(dA))).mod(n)
-    s = mod.mod(mod.invert(dA + ONE, sm2Curve.CURVE.n) * (k - r * dA), sm2Curve.CURVE.n)
+    s = field.mul(field.inv(field.addN(dA, ONE)), field.subN(k, field.mulN(r, dA)))
   } while (s === ZERO)
   if (der) return encodeDer(r, s) // asn.1 der 编码
   return leftPad(utils.numberToHexUnpadded(r), 64) + leftPad(utils.numberToHexUnpadded(s), 64)
@@ -216,7 +215,7 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
   
   // t = (r + s) mod n
   // const t = r.add(s).mod(n)
-  const t = mod.mod(r + s, sm2Curve.CURVE.n)
+  const t = field.add(r, s)
 
   if (t === ZERO) return false
 
@@ -226,7 +225,7 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
 
   // R = (e + x1) mod n
   // const R = e.add(x1y1.getX().toBigInteger()).mod(n)
-  const R = mod.mod(e + x1y1.x, sm2Curve.CURVE.n)
+  const R = field.add(e, x1y1.x)
 
   // return r.equals(R)
   return r === R
