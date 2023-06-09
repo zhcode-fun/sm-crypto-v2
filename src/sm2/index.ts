@@ -9,6 +9,7 @@ import { ONE, ZERO } from './bn';
 
 export * from './utils'
 export { initRNGPool } from './ec'
+export { calculateSharedKey } from './kx'
 
 // const { G, curve, n } = generateEcparam()
 const C1C2C3 = 0

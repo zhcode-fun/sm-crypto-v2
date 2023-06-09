@@ -163,6 +163,24 @@ let decryptData = sm4.decrypt(encryptData, key, {padding: 'none', output: 'array
 let decryptData = sm4.decrypt(encryptData, key, {mode: 'cbc', iv: 'fedcba98765432100123456789abcdef'}) // 解密，cbc 模式
 ```
 
+### 密钥交换(实验性)
+
+```js
+import { sm2 } from 'sm-crypto-v2'
+
+const keyPairA = sm2.generateKeyPairHex() // A 的秘钥对
+const keyPairB = sm2.generateKeyPairHex() // B 的秘钥对
+const ephemeralKeypairA = sm2.generateKeyPairHex() // A 的临时秘钥对
+const ephemeralKeypairB = sm2.generateKeyPairHex() // B 的临时秘钥对
+
+// A 所需参数：A 的秘钥对，A 的临时秘钥对，B 的公钥，B 的临时秘钥公钥，AB 的身份ID，长度
+const sharedKeyFromA = sm2.calculateSharedKey(keyPairA, ephemeralKeypairA, keyPairB.publicKey, ephemeralKeypairB.publicKey, undefined, undefined, 233)
+// A 所需参数：B 的秘钥对，B 的临时秘钥对，A 的公钥，A 的临时秘钥公钥，AB 的身份ID，长度
+const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPairA.publicKey, ephemeralKeypairA.publicKey, undefined, undefined, 233)
+
+// expect(sharedKeyFromA).toEqual(sharedKeyFromB) => true
+```
+
 ## 其他实现
 
 * 原 js 版本：[https://github.com/JuneAndGreen/sm-crypto](https://github.com/JuneAndGreen/sm-crypto)
