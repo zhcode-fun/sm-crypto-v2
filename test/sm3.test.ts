@@ -1,8 +1,11 @@
-import { sm3 } from '@/sm3'
-import { test, expect } from 'vitest'
+// import { sm3 } from '@/sm3'
+import { test, expect, describe, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { concatArray } from '@/sm2'
+import { sm3 } from '@/sm3'
+// import { sm3 as sm3 } from '@/sm2/sm3O'
+import { bytesToHex } from '@/sm3/utils'
+import { concatBytes } from '@noble/curves/abstract/utils'
 test('sm3: must match the result', () => {
     // 单字节
     expect(sm3('abc')).toBe('66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0')
@@ -53,19 +56,19 @@ test('sm3: hmac', () => {
     const bytes8 = Uint8Array.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
     
     // 32 字节
-    const bytes32 = concatArray(bytes8, bytes8, bytes8, bytes8)
+    const bytes32 = concatBytes(bytes8, bytes8, bytes8, bytes8)
     expect(sm3(bytes32, {
         key: bytes32,
     })).toBe('41e6589cde89b4f8c810a820c2fb6f0ad86bf2c136a19cfb3a5c0835f598e07b')
 
     // 64 字节
-    const bytes64 = concatArray(bytes32, bytes32)
+    const bytes64 = concatBytes(bytes32, bytes32)
     expect(sm3(bytes64, {
         key: bytes64,
     })).toBe('d6fb17c240930a21996373aa9fc0b1092931b016640809297911cd3f8cc9dcdd')
 
     // 128 字节
-    const bytes128 = concatArray(bytes64, bytes64)
+    const bytes128 = concatBytes(bytes64, bytes64)
     expect(sm3(bytes128, {
         key: bytes128,
     })).toBe('d374f8adb0e9d1f12de94c1406fe8b2d53f84129e033f0d269400de8e8e7ca1a')

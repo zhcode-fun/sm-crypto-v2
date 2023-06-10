@@ -1,7 +1,8 @@
 import { field, sm2Curve } from './ec';
-import { KeyPair, concatArray, hexToArray, leftPad } from './utils';
+import { KeyPair, hexToArray, leftPad } from './utils';
 import * as utils from '@noble/curves/abstract/utils';
 import { sm3 } from './sm3';
+import { EmptyArray } from '.';
 
 
 // 用到的常数
@@ -10,14 +11,19 @@ const wPow2Sub1 = utils.hexToNumber('7fffffffffffffffffffffffffffffff')
 
 // from sm2 sign part, extracted for code reusable.
 function hkdf(z: Uint8Array, keylen: number) {
-  let t = new Uint8Array() // 256 位
   let msg = new Uint8Array(keylen)
   let ct = 1
   let offset = 0
+  let t = EmptyArray
+  const ctShift = new Uint8Array(4)
   const nextT = () => {
     // (1) Hai = hash(z || ct)
     // (2) ct++
-    t = sm3(Uint8Array.from([...z, ct >> 24 & 0x00ff, ct >> 16 & 0x00ff, ct >> 8 & 0x00ff, ct & 0x00ff]))
+    ctShift[0] = ct >> 24 & 0x00ff
+    ctShift[1] = ct >> 16 & 0x00ff
+    ctShift[2] = ct >> 8 & 0x00ff
+    ctShift[3] = ct & 0x00ff
+    t = sm3(utils.concatBytes(z, ctShift))
     ct++
     offset = 0
   }
@@ -69,6 +75,6 @@ export function calculateSharedKey(
   // KA = KDF(xU || yU || ZA || ZB, kLen)
   const xU = hexToArray(leftPad(utils.numberToHexUnpadded(U.x), 64))
   const yU = hexToArray(leftPad(utils.numberToHexUnpadded(U.y), 64))
-  const KA = hkdf(concatArray(xU, yU, ZA, ZB), sharedKeyLength)
+  const KA = hkdf(utils.concatBytes(xU, yU, ZA, ZB), sharedKeyLength)
   return KA
 }
