@@ -1,8 +1,5 @@
 import { sm2 } from '@/index';
-import { calculateSharedKey, leftPad, verifyPublicKey } from '@/sm2';
 import { describe, expect, it } from 'vitest';
-import * as utils from '@noble/curves/abstract/utils';
-import { sm2Curve } from '@/sm2/ec';
 
 describe('key exchange', () => {
   const keyPairA = sm2.generateKeyPairHex()

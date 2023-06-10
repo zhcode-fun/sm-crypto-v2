@@ -48,7 +48,7 @@ function P1(X: number) {
   return (X ^ rotl(X, 15)) ^ rotl(X, 23)
 }
 
-// from nobel-hashes (https://github.com/paulmillr/noble-hashes#hmac)
+// from noble-hashes (https://github.com/paulmillr/noble-hashes#hmac)
 // The MIT License (MIT)
 
 // Copyright (c) 2022 Paul Miller (https://paulmillr.com)
