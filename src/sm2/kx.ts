@@ -33,7 +33,7 @@ function hkdf(z: Uint8Array, keylen: number) {
     // t = Ha1 || Ha2 || Ha3 || Ha4
     if (offset === t.length) nextT()
 
-    // c2 = msg ^ t
+    // 输出 stream
     msg[i] = t[offset++] & 0xff
   }
   return msg
@@ -51,13 +51,13 @@ export function calculateSharedKey(
 ) {
   const RA = sm2Curve.ProjectivePoint.fromHex(ephemeralKeypairA.publicKey)
   const RB = sm2Curve.ProjectivePoint.fromHex(ephemeralPublicKeyB)
-  // const PA = sm2Curve.ProjectivePoint.fromHex(keypairA.publicKey) // 暂时用不到
+  // const PA = sm2Curve.ProjectivePoint.fromHex(keypairA.publicKey) // 用不到
   const PB = sm2Curve.ProjectivePoint.fromHex(publicKeyB)
   const ZA = hexToArray(idA)
   const ZB = hexToArray(idB)
   const rA = utils.hexToNumber(ephemeralKeypairA.privateKey)
   const dA = utils.hexToNumber(keypairA.privateKey)
-  // 1.先算tA
+  // 1.先算 tA
   const x1 = RA.x
   // x1_ = 2^w + (x1 & (2^w - 1))
   const x1_ = field.add(wPow2, (x1 & wPow2Sub1))

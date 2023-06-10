@@ -1,3 +1,4 @@
+import { bytesToHex } from '@/sm3/utils'
 import { rotl } from '../sm2/sm3'
 import { arrayToHex, arrayToUtf8, hexToArray } from '../sm2/utils'
 import { utf8ToArray } from '../sm3'
@@ -64,11 +65,10 @@ function l2(b: number) {
 /**
  * 以一组 128 比特进行加密/解密操作
  */
+const x = new Uint32Array(4)
+const tmp = new Uint32Array(4)
 function sms4Crypt(input: Uint8Array, output: Uint8Array, roundKey: Uint32Array) {
-  const x = new Uint32Array(4)
-
   // 字节数组转成字数组（此处 1 字 = 32 比特）
-  const tmp = new Uint32Array(4)
   for (let i = 0; i < 4; i++) {
     tmp[0] = input[4 * i] & 0xff
     tmp[1] = input[4 * i + 1] & 0xff
@@ -105,10 +105,8 @@ function sms4Crypt(input: Uint8Array, output: Uint8Array, roundKey: Uint32Array)
  * 密钥扩展算法
  */
 function sms4KeyExt(key: Uint8Array, roundKey: Uint32Array, cryptFlag: 0 | 1) {
-  const x = new Uint32Array(4)
 
   // 字节数组转成字数组（此处 1 字 = 32 比特）
-  const tmp = new Uint32Array(4)
   for (let i = 0; i < 4; i++) {
     tmp[0] = key[0 + 4 * i] & 0xff
     tmp[1] = key[1 + 4 * i] & 0xff
@@ -154,6 +152,7 @@ export interface SM4Options {
   output?: 'string' | 'array'
 }
 
+const blockOutput = new Uint8Array(16)
 export function sm4(inArray: Uint8Array | string, key: Uint8Array | string, cryptFlag: 0 | 1, options: SM4Options = {}) {
   let {
     padding = 'pkcs#7',
@@ -208,8 +207,7 @@ export function sm4(inArray: Uint8Array | string, key: Uint8Array | string, cryp
   let restLen = inArray.length
   let point = 0
   while (restLen >= BLOCK) {
-    const input = inArray.slice(point, point + 16)
-    const output = new Uint8Array(16)
+    const input = inArray.subarray(point, point + 16)
 
     if (mode === 'cbc') {
       for (let i = 0; i < BLOCK; i++) {
@@ -220,24 +218,24 @@ export function sm4(inArray: Uint8Array | string, key: Uint8Array | string, cryp
       }
     }
 
-    sms4Crypt(input, output, roundKey)
+    sms4Crypt(input, blockOutput, roundKey)
 
 
     for (let i = 0; i < BLOCK; i++) {
       if (mode === 'cbc') {
         if (cryptFlag === DECRYPT) {
           // 解密过程在组解密后进行异或
-          output[i] ^= lastVector[i]
+          blockOutput[i] ^= lastVector[i]
         }
       }
 
-      outArray[point + i] = output[i]
+      outArray[point + i] = blockOutput[i]
     }
 
     if (mode === 'cbc') {
       if (cryptFlag !== DECRYPT) {
         // 使用上一次输出作为加密向量
-        lastVector = output
+        lastVector = blockOutput
       } else {
         // 使用上一次输入作为解密向量
         lastVector = input
@@ -262,7 +260,7 @@ export function sm4(inArray: Uint8Array | string, key: Uint8Array | string, cryp
   if (output !== 'array') {
     if (cryptFlag !== DECRYPT) {
       // 加密，输出转 16 进制串
-      return arrayToHex(Array.from(outArray))
+      return bytesToHex(outArray)
     } else {
       // 解密，输出转 utf8 串
       return arrayToUtf8(outArray)

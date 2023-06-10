@@ -146,9 +146,7 @@ export function verifyPublicKey(publicKey: string) {
   const x = point.x
   const y = point.y
   // 验证 y^2 是否等于 x^3 + ax + b
-  // return y.square().equals(x.multiply(x.square()).add(x.multiply(curve.a)).add(curve.b))
-  return sm2Fp.sqr(y) === sm2Fp.add(sm2Fp.add(sm2Fp.mul(x, sm2Fp.sqr(x)), sm2Fp.mul(x, sm2Curve.CURVE.a)), sm2Curve.CURVE.b)
-  // return y ** 2n === (x ** 3n + sm2Curve.CURVE.a * x + sm2Curve.CURVE.b)
+  return sm2Fp.sqr(y) === sm2Fp.add(sm2Fp.addN(sm2Fp.mulN(x, sm2Fp.sqrN(x)), sm2Fp.mulN(x, sm2Curve.CURVE.a)), sm2Curve.CURVE.b)
 }
 
 /**

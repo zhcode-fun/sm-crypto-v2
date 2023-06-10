@@ -191,20 +191,27 @@ const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPa
 
 ## 性能
 
-CPU: Apple M1 Pro
+CPU: Apple M2
 
-| 操作          | sm-crypto            | sm-crypto-v2         | 性能差距         |
-|:-------------------|:---------------------|:---------------------|:---------------------|
-| **RAM (before)**   | rss=58.6mb, used=10.5mb | rss=57.7mb, used=10.5mb | N/A                  |
-| **sm2**            |                      |                      |                      |
-| generateKeyPair    | 150 ops/sec, 6ms/op  | 3,371 ops/sec, 296μs/op | 22.47x               |
-| encrypt            | 76 ops/sec, 13ms/op  | 293 ops/sec, 3ms/op   | 3.85x                |
-| sign               | 146 ops/sec, 6ms/op  | 3,737 ops/sec, 267μs/op | 25.6x                |
-| verify             | 77 ops/sec, 12ms/op  | 301 ops/sec, 3ms/op   | 3.91x                |
-| **sm3**            |                      |                      |                      |
-| hash               | 320 ops/sec, 3ms/op  | 518 ops/sec, 1ms/op   | 1.62x                |
-| hmac               | 238 ops/sec, 4ms/op  | 517 ops/sec, 1ms/op   | 2.17x                |
-| **RAM (after)**    | rss=147.7mb, used=59.5mb | rss=110.5mb, used=26.2mb | N/A                  |
+| Operation          | sm-crypto    | sm-crypto-v2 | Difference (in times) |
+|--------------------|--------------|--------------|-----------------------|
+| sm2 generateKeyPair| 148 ops/sec  | 3,452 ops/sec| 23.3x                 |
+| sm2 encrypt        | 76 ops/sec   | 304 ops/sec  | 4x                    |
+| sm2 sign           | 150 ops/sec  | 3,829 ops/sec| 25.5x                 |
+| sm2 verify         | 76 ops/sec   | 306 ops/sec  | 4x                    |
+| sm3 hash           | 322 ops/sec  | 519 ops/sec  | 1.6x                  |
+| sm3 hmac           | 244 ops/sec  | 518 ops/sec  | 2.1x                  |
+| sm4 encrypt        | 102,009 ops/sec | 102,124 ops/sec | 1x               |
+| sm4 decrypt        | 143,430 ops/sec | 237,247 ops/sec | 1.7x             |
+
+内存：
+
+| Metric             | sm-crypto    | sm-crypto-v2 | Difference            |
+|--------------------|--------------|--------------|-----------------------|
+| RAM (rss)          | 57.9mb       | 57.7mb       | -0.2mb                |
+| RAM (heap)         | 16.6mb       | 16.6mb       | 0mb                   |
+| RAM (used)         | 10.4mb       | 10.5mb       | +0.1mb                |
+| RAM (end - start)  | 83.1mb       | 71.8mb       | -11.3mb               |
 
 ## 协议
 

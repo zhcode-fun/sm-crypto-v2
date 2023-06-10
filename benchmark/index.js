@@ -22,6 +22,8 @@ run(async () => {
   await mark('sm2 verify', 500, () => backend.sm2.doVerifySignature(msg, sig, keypair.publicKey));
   await mark('sm3 hash', 1000, () => backend.default.sm3(longMsg))
   await mark('sm3 hmac', 1000, () => backend.default.sm3(longMsg, { key: 'asdfgh' }))
+  await mark('sm4 encrypt', 1000, () => backend.default.sm4.encrypt('hello world! 我是 juneandgreen.', '0123456789abcdeffedcba9876543210'))
+  await mark('sm4 decrypt', 1000, () => backend.default.sm4.encrypt('681edf34d206965e86b3e94f536e4246002a8a4efa863ccad024ac0300bb40d2', '0123456789abcdeffedcba9876543210'))
 
   if (RAM) utils.logMem();
 });
