@@ -193,25 +193,18 @@ const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPa
 
 CPU: Apple M1 Pro
 
-```
-❯ npm run bench
-
-> benchmark@0.1.0 bench
-> node index.js
-
-Benchmarking
-
-=== sm-crypto ===
-sm2 generateKeyPair x 134 ops/sec @ 7ms/op ± 4.12% (min: 6ms, max: 21ms)
-sm2 encrypt x 71 ops/sec @ 14ms/op
-sm2 sign x 139 ops/sec @ 7ms/op
-sm2 verify x 70 ops/sec @ 14ms/op
-=== sm-crypto-v2 ===
-sm2 generateKeyPair x 2,835 ops/sec @ 352μs/op ± 6.34% (min: 286μs, max: 1ms)
-sm2 encrypt x 253 ops/sec @ 3ms/op ± 2.11% (min: 3ms, max: 24ms)
-sm2 sign x 3,186 ops/sec @ 313μs/op ± 1.26% (min: 277μs, max: 854μs)
-sm2 verify x 258 ops/sec @ 3ms/op
-```
+| 操作          | sm-crypto            | sm-crypto-v2         | 性能差距         |
+|:-------------------|:---------------------|:---------------------|:---------------------|
+| **RAM (before)**   | rss=58.6mb, used=10.5mb | rss=57.7mb, used=10.5mb | N/A                  |
+| **sm2**            |                      |                      |                      |
+| generateKeyPair    | 150 ops/sec, 6ms/op  | 3,371 ops/sec, 296μs/op | 22.47x               |
+| encrypt            | 76 ops/sec, 13ms/op  | 293 ops/sec, 3ms/op   | 3.85x                |
+| sign               | 146 ops/sec, 6ms/op  | 3,737 ops/sec, 267μs/op | 25.6x                |
+| verify             | 77 ops/sec, 12ms/op  | 301 ops/sec, 3ms/op   | 3.91x                |
+| **sm3**            |                      |                      |                      |
+| hash               | 320 ops/sec, 3ms/op  | 518 ops/sec, 1ms/op   | 1.62x                |
+| hmac               | 238 ops/sec, 4ms/op  | 517 ops/sec, 1ms/op   | 2.17x                |
+| **RAM (after)**    | rss=147.7mb, used=59.5mb | rss=110.5mb, used=26.2mb | N/A                  |
 
 ## 协议
 
