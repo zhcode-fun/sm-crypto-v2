@@ -146,9 +146,7 @@ export function verifyPublicKey(publicKey: string) {
   const x = point.x
   const y = point.y
   // 验证 y^2 是否等于 x^3 + ax + b
-  // return y.square().equals(x.multiply(x.square()).add(x.multiply(curve.a)).add(curve.b))
-  return sm2Fp.sqr(y) === sm2Fp.add(sm2Fp.add(sm2Fp.mul(x, sm2Fp.sqr(x)), sm2Fp.mul(x, sm2Curve.CURVE.a)), sm2Curve.CURVE.b)
-  // return y ** 2n === (x ** 3n + sm2Curve.CURVE.a * x + sm2Curve.CURVE.b)
+  return sm2Fp.sqr(y) === sm2Fp.add(sm2Fp.addN(sm2Fp.mulN(x, sm2Fp.sqrN(x)), sm2Fp.mulN(x, sm2Curve.CURVE.a)), sm2Curve.CURVE.b)
 }
 
 /**
@@ -162,24 +160,4 @@ export function comparePublicKeyHex(publicKey1: string, publicKey2: string) {
   if (!point2) return false
 
   return point1.equals(point2)
-}
-
-
-export function concatArray(...arrays: Uint8Array[]) {
-  // sum of individual array lengths
-  let totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
-
-  if (!arrays.length) return new Uint8Array();
-
-  let result = new Uint8Array(totalLength);
-
-  // for each array - copy it over result
-  // next array is copied right after the previous one
-  let length = 0;
-  for (let array of arrays) {
-    result.set(array, length);
-    length += array.length;
-  }
-
-  return result;
 }

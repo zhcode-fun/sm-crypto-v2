@@ -1,8 +1,21 @@
-import { concatArray } from './utils'
+// import assert from './_assert.js';
+import { Hash, createView, Input, toBytes, wrapConstructor } from '../sm3/utils.js';
 
-// 消息扩展
-const W = new Uint32Array(68)
-const M = new Uint32Array(64) // W'
+const BoolA = (A: number, B: number, C: number) => ((A & B) | (A & C)) | (B & C)
+const BoolB = (A: number, B: number, C: number) => ((A ^ B) ^ C)
+const BoolC = (A: number, B: number, C: number) => (A & B) | ((~A) & C)
+// Polyfill for Safari 14
+function setBigUint64(view: DataView, byteOffset: number, value: bigint, isLE: boolean): void {
+  if (typeof view.setBigUint64 === 'function') return view.setBigUint64(byteOffset, value, isLE);
+  const _32n = BigInt(32);
+  const _u32_max = BigInt(0xffffffff);
+  const wh = Number((value >> _32n) & _u32_max);
+  const wl = Number(value & _u32_max);
+  const h = isLE ? 4 : 0;
+  const l = isLE ? 0 : 4;
+  view.setUint32(byteOffset + h, wh, isLE);
+  view.setUint32(byteOffset + l, wl, isLE);
+}
 
 /**
  * 循环左移
@@ -35,83 +48,187 @@ function P1(X: number) {
   return (X ^ rotl(X, 15)) ^ rotl(X, 23)
 }
 
-/**
- * sm3 本体
- */
-export function sm3(array: Uint8Array) {
-  let len = array.length * 8
-  // k 是满足 len + 1 + k = 448mod512 的最小的非负整数
-  let k = len % 512
-  // 如果 448 <= (512 % len) < 512，需要多补充 (len % 448) 比特'0'以满足总比特长度为512的倍数
-  k = k >= 448 ? 512 - (k % 448) - 1 : 448 - k - 1
+// from noble-hashes (https://github.com/paulmillr/noble-hashes#hmac)
+// The MIT License (MIT)
 
-  // 填充
-  const kArr = new Array((k - 7) / 8)
-  const lenArr = new Array(8)
-  for (let i = 0, len = kArr.length; i < len; i++) kArr[i] = 0
-  for (let i = 0, len = lenArr.length; i < len; i++) lenArr[i] = 0
-  let lenString = len.toString(2)
-  for (let i = 7; i >= 0; i--) {
-    if (lenString.length > 8) {
-      const start = lenString.length - 8
-      lenArr[i] = parseInt(lenString.substring(start), 2)
-      lenString = lenString.substring(0, start)
-    } else if (lenString.length > 0) {
-      lenArr[i] = parseInt(lenString, 2)
-      lenString = ''
-    }
+// Copyright (c) 2022 Paul Miller (https://paulmillr.com)
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the “Software”), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+// Base SHA2 class (RFC 6234)
+export abstract class SHA2<T extends SHA2<T>> extends Hash<T> {
+  protected abstract process(buf: DataView, offset: number): void;
+  protected abstract get(): number[];
+  protected abstract set(...args: number[]): void;
+  abstract destroy(): void;
+  protected abstract roundClean(): void;
+  // For partial updates less than block size
+  protected buffer: Uint8Array;
+  protected view: DataView;
+  protected finished = false;
+  protected length = 0;
+  protected pos = 0;
+  protected destroyed = false;
+
+  constructor(
+    readonly blockLen: number,
+    public outputLen: number,
+    readonly padOffset: number,
+    readonly isLE: boolean
+  ) {
+    super();
+    this.buffer = new Uint8Array(blockLen);
+    this.view = createView(this.buffer);
   }
-  const m = Uint8Array.from([...array, 0x80, ...kArr, ...lenArr])
-  const dataView = new DataView(m.buffer, 0)
-
-  // 迭代压缩
-  const n = m.length / 64
-  const V = new Uint32Array([0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d, 0xb0fb0e4e])
-  for (let i = 0; i < n; i++) {
-    W.fill(0)
-    M.fill(0)
-
-    // 将消息分组B划分为 16 个字 W0， W1，……，W15
-    const start = 16 * i
-    for (let j = 0; j < 16; j++) {
-      W[j] = dataView.getUint32((start + j) * 4, false)
+  update(data: Input): this {
+    const { view, buffer, blockLen } = this;
+    data = toBytes(data);
+    const len = data.length;
+    for (let pos = 0; pos < len; ) {
+      const take = Math.min(blockLen - this.pos, len - pos);
+      // Fast path: we have at least one block in input, cast it to view and process
+      if (take === blockLen) {
+        const dataView = createView(data);
+        for (; blockLen <= len - pos; pos += blockLen) this.process(dataView, pos);
+        continue;
+      }
+      buffer.set(data.subarray(pos, pos + take), this.pos);
+      this.pos += take;
+      pos += take;
+      if (this.pos === blockLen) {
+        this.process(view, 0);
+        this.pos = 0;
+      }
     }
-
-    // W16 ～ W67：W[j] <- P1(W[j−16] xor W[j−9] xor (W[j−3] <<< 15)) xor (W[j−13] <<< 7) xor W[j−6]
-    for (let j = 16; j < 68; j++) {
-      W[j] = (P1((W[j - 16] ^ W[j - 9]) ^ rotl(W[j - 3], 15)) ^ rotl(W[j - 13], 7)) ^ W[j - 6]
+    this.length += data.length;
+    this.roundClean();
+    return this;
+  }
+  digestInto(out: Uint8Array) {
+    this.finished = true;
+    // Padding
+    // We can avoid allocation of buffer for padding completely if it
+    // was previously not allocated here. But it won't change performance.
+    const { buffer, view, blockLen, isLE } = this;
+    let { pos } = this;
+    // append the bit '1' to the message
+    buffer[pos++] = 0b10000000;
+    this.buffer.subarray(pos).fill(0);
+    // we have less than padOffset left in buffer, so we cannot put length in current block, need process it and pad again
+    if (this.padOffset > blockLen - pos) {
+      this.process(view, 0);
+      pos = 0;
     }
+    // Pad until full block byte with zeros
+    for (let i = pos; i < blockLen; i++) buffer[i] = 0;
+    // Note: sha512 requires length to be 128bit integer, but length in JS will overflow before that
+    // You need to write around 2 exabytes (u64_max / 8 / (1024**6)) for this to happen.
+    // So we just write lowest 64 bits of that value.
+    setBigUint64(view, blockLen - 8, BigInt(this.length * 8), isLE);
+    this.process(view, 0);
+    const oview = createView(out);
+    const len = this.outputLen;
+    // NOTE: we do division by 4 later, which should be fused in single op with modulo by JIT
+    if (len % 4) throw new Error('_sha2: outputLen should be aligned to 32bit');
+    const outLen = len / 4;
+    const state = this.get();
+    if (outLen > state.length) throw new Error('_sha2: outputLen bigger than state');
+    for (let i = 0; i < outLen; i++) oview.setUint32(4 * i, state[i], isLE);
+  }
+  digest() {
+    const { buffer, outputLen } = this;
+    this.digestInto(buffer);
+    const res = buffer.slice(0, outputLen);
+    this.destroy();
+    return res;
+  }
+  _cloneInto(to?: T): T {
+    to ||= new (this.constructor as any)() as T;
+    to.set(...this.get());
+    const { blockLen, buffer, length, finished, destroyed, pos } = this;
+    to.length = length;
+    to.pos = pos;
+    to.finished = finished;
+    to.destroyed = destroyed;
+    if (length % blockLen) to.buffer.set(buffer);
+    return to;
+  }
+}
 
-    // W′0 ～ W′63：W′[j] = W[j] xor W[j+4]
+const IV = new Uint32Array([0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d, 0xb0fb0e4e])
+const SM3_W = new Uint32Array(68)
+const SM3_M = new Uint32Array(64)
+
+const T1 = 0x79cc4519
+const T2 = 0x7a879d8a
+
+class SM3 extends SHA2<SM3> {
+  // We cannot use array here since array allows indexing by variable
+  // which means optimizer/compiler cannot use registers.
+  A = IV[0] | 0;
+  B = IV[1] | 0;
+  C = IV[2] | 0;
+  D = IV[3] | 0;
+  E = IV[4] | 0;
+  F = IV[5] | 0;
+  G = IV[6] | 0;
+  H = IV[7] | 0;
+
+  constructor() {
+    super(64, 32, 8, false);
+  }
+  protected get(): [number, number, number, number, number, number, number, number] {
+    const { A, B, C, D, E, F, G, H } = this;
+    return [A, B, C, D, E, F, G, H];
+  }
+  // prettier-ignore
+  protected set(
+    A: number, B: number, C: number, D: number, E: number, F: number, G: number, H: number
+  ) {
+    this.A = A | 0;
+    this.B = B | 0;
+    this.C = C | 0;
+    this.D = D | 0;
+    this.E = E | 0;
+    this.F = F | 0;
+    this.G = G | 0;
+    this.H = H | 0;
+  }
+  protected process(view: DataView, offset: number): void {
+    // Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array
+    for (let i = 0; i < 16; i++, offset += 4) SM3_W[i] = view.getUint32(offset, false);
+    for (let i = 16; i < 68; i++) {
+      SM3_W[i] = (P1((SM3_W[i- 16] ^ SM3_W[i - 9]) ^ rotl(SM3_W[i - 3], 15)) ^ rotl(SM3_W[i - 13], 7)) ^ SM3_W[i - 6]
+    }
+    for (let i = 0; i < 64; i++) {
+      SM3_M[i] = SM3_W[i] ^ SM3_W[i + 4]
+    }
+    // Compression function main loop, 64 rounds
+    let { A, B, C, D, E, F, G, H } = this;
     for (let j = 0; j < 64; j++) {
-      M[j] = W[j] ^ W[j + 4]
-    }
+      let small = j >= 0 && j <= 15
+      let T = small ? T1 : T2
+      let SS1 = rotl(rotl(A, 12) + E + rotl(T, j), 7)
+      let SS2 = SS1 ^ rotl(A, 12)
 
-    // 压缩
-    const T1 = 0x79cc4519
-    const T2 = 0x7a879d8a
-    // 字寄存器
-    let A = V[0]
-    let B = V[1]
-    let C = V[2]
-    let D = V[3]
-    let E = V[4]
-    let F = V[5]
-    let G = V[6]
-    let H = V[7]
-    // 中间变量
-    let SS1: number
-    let SS2: number
-    let TT1: number
-    let TT2: number
-    let T: number
-    for (let j = 0; j < 64; j++) {
-      T = j >= 0 && j <= 15 ? T1 : T2
-      SS1 = rotl(rotl(A, 12) + E + rotl(T, j), 7)
-      SS2 = SS1 ^ rotl(A, 12)
-
-      TT1 = (j >= 0 && j <= 15 ? ((A ^ B) ^ C) : (((A & B) | (A & C)) | (B & C))) + D + SS2 + M[j]
-      TT2 = (j >= 0 && j <= 15 ? ((E ^ F) ^ G) : ((E & F) | ((~E) & G))) + H + SS1 + W[j]
+      let TT1 = ((small ? BoolB(A, B, C) : BoolA(A, B, C)) + D + SS2 + SM3_M[j]) | 0
+      let TT2 = ((small ? BoolB(E, F, G) : BoolC(E, F, G)) + H + SS1 + SM3_W[j]) | 0
 
       D = C
       C = rotl(B, 9)
@@ -122,53 +239,23 @@ export function sm3(array: Uint8Array) {
       F = E
       E = P0(TT2)
     }
-
-    V[0] ^= A
-    V[1] ^= B
-    V[2] ^= C
-    V[3] ^= D
-    V[4] ^= E
-    V[5] ^= F
-    V[6] ^= G
-    V[7] ^= H
+    // Add the compressed chunk to the current hash value
+    A = (A ^ this.A) | 0;
+    B = (B ^ this.B) | 0;
+    C = (C ^ this.C) | 0;
+    D = (D ^ this.D) | 0;
+    E = (E ^ this.E) | 0;
+    F = (F ^ this.F) | 0;
+    G = (G ^ this.G) | 0;
+    H = (H ^ this.H) | 0;
+    this.set(A, B, C, D, E, F, G, H);
   }
-
-  // 转回 uint8
-  const result = new Uint8Array(V.length * 4)
-  for (let i = 0, len = V.length; i < len; i++) {
-    const word = V[i]
-    result[i * 4] = (word & 0xff000000) >>> 24
-    result[i * 4 + 1] = (word & 0xff0000) >>> 16
-    result[i * 4 + 2] = (word & 0xff00) >>> 8
-    result[i * 4 + 3] = word & 0xff
+  protected roundClean() {
+    SM3_W.fill(0);
   }
-
-  return result
-}
-
-/**
- * hmac 实现
- */
-const blockLen = 64
-const iPad = new Uint8Array(blockLen)
-const oPad = new Uint8Array(blockLen)
-for (let i = 0; i < blockLen; i++) {
-  iPad[i] = 0x36
-  oPad[i] = 0x5c
-}
-
-export function hmac(input: Uint8Array, key: Uint8Array) {
-  // 密钥填充
-  if (key.length > blockLen) key = sm3(key)
-  while (key.length < blockLen) {
-    const padKey = new Uint8Array(blockLen)
-    padKey.set(key)
-    key = padKey
+  destroy() {
+    this.set(0, 0, 0, 0, 0, 0, 0, 0);
+    this.buffer.fill(0);
   }
-
-  const iPadKey = xor(key, iPad)
-  const oPadKey = xor(key, oPad)
-
-  const hash = sm3(concatArray(iPadKey, input))
-  return sm3(concatArray(oPadKey, hash))
 }
+export const sm3 = wrapConstructor(() => new SM3());

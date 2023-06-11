@@ -1,5 +1,7 @@
-import { hmac, sm3 as sm2sm3 } from '../sm2/sm3'
+import { hmac } from '@/sm2/hmac'
+import { sm3 as sm2sm3 } from '../sm2/sm3'
 import { arrayToHex, hexToArray, leftPad } from '../sm2/utils'
+import { bytesToHex } from './utils'
 
 /**
  * 补全16进制字符串
@@ -62,8 +64,9 @@ export function sm3(input: string | Uint8Array, options?: {
     if (!key) throw new Error('invalid key')
 
     key = typeof key === 'string' ? hexToArray(key) : key
-    return arrayToHex(Array.from(hmac(input, key)))
+    return bytesToHex(hmac(sm2sm3, key, input));
   }
-
-  return arrayToHex(Array.from(sm2sm3(input)))
+  return bytesToHex(sm2sm3(input))
 }
+
+export default sm3

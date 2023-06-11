@@ -1,18 +1,19 @@
 /* eslint-disable no-use-before-define */
 import { encodeDer, decodeDer } from './asn1'
-import { arrayToHex, arrayToUtf8, concatArray, generateKeyPairHex, hexToArray, leftPad, utf8ToHex } from './utils'
+import { arrayToHex, arrayToUtf8, generateKeyPairHex, hexToArray, leftPad, utf8ToHex } from './utils'
 import { sm3 } from './sm3'
 import * as utils from '@noble/curves/abstract/utils';
 import { field, sm2Curve } from './ec';
 import { ONE, ZERO } from './bn';
+import { bytesToHex } from '@/sm3/utils';
 
 export * from './utils'
 export { initRNGPool } from './rng'
 export { calculateSharedKey } from './kx'
 
-// const { G, curve, n } = generateEcparam()
 const C1C2C3 = 0
-
+// a empty array, just make tsc happy
+export const EmptyArray = new Uint8Array()
 /**
  * 加密
  */
@@ -20,11 +21,9 @@ export function doEncrypt(msg: string | Uint8Array, publicKey: string, cipherMod
 
   const msgArr = typeof msg === 'string' ? hexToArray(utf8ToHex(msg)) : Uint8Array.from(msg)
   const publicKeyPoint = sm2Curve.ProjectivePoint.fromHex(publicKey)
-  // const publicKeyPoint = getGlobalCurve().decodePointHex(publicKey) // 先将公钥转成点
 
   const keypair = generateKeyPairHex()
   const k = utils.hexToNumber(keypair.privateKey)
-  // const k = new BigInteger(keypair.privateKey, 16) // 随机数 k
 
   // c1 = k * G
   let c1 = keypair.publicKey
@@ -36,31 +35,40 @@ export function doEncrypt(msg: string | Uint8Array, publicKey: string, cipherMod
   const y2 = hexToArray(leftPad(utils.numberToHexUnpadded(p.y), 64))
 
   // c3 = hash(x2 || msg || y2)
-  const c3 = arrayToHex(Array.from(sm3(concatArray(x2, msgArr, y2))));
+  const c3 = bytesToHex(sm3(utils.concatBytes(x2, msgArr, y2)));
 
+  xorCipherStream(x2, y2, msgArr)
+  const c2 = bytesToHex(msgArr)
+
+  return cipherMode === C1C2C3 ? c1 + c2 + c3 : c1 + c3 + c2
+}
+
+function xorCipherStream(x2: Uint8Array, y2: Uint8Array, msg: Uint8Array) {
   let ct = 1
   let offset = 0
-  let t: Uint8Array = new Uint8Array() // 256 位
-  const z = concatArray(x2, y2)
+  let t = EmptyArray
+  const ctShift = new Uint8Array(4)
   const nextT = () => {
     // (1) Hai = hash(z || ct)
     // (2) ct++
-    t = sm3(Uint8Array.from([...z, ct >> 24 & 0x00ff, ct >> 16 & 0x00ff, ct >> 8 & 0x00ff, ct & 0x00ff]))
+    ctShift[0] = ct >> 24 & 0x00ff
+    ctShift[1] = ct >> 16 & 0x00ff
+    ctShift[2] = ct >> 8 & 0x00ff
+    ctShift[3] = ct & 0x00ff
+    t = sm3(utils.concatBytes(x2, y2, ctShift))
     ct++
     offset = 0
   }
   nextT() // 先生成 Ha1
 
-  for (let i = 0, len = msgArr.length; i < len; i++) {
+  for (let i = 0, len = msg.length; i < len; i++) {
     // t = Ha1 || Ha2 || Ha3 || Ha4
     if (offset === t.length) nextT()
 
     // c2 = msg ^ t
-    msgArr[i] ^= t[offset++] & 0xff
+    msg[i] ^= t[offset++] & 0xff
   }
-  const c2 = arrayToHex(Array.from(msgArr))
 
-  return cipherMode === C1C2C3 ? c1 + c2 + c3 : c1 + c3 + c2
 }
 
 /**
@@ -75,7 +83,6 @@ export function doDecrypt(encryptData: string, privateKey: string, cipherMode?: 
 export function doDecrypt(encryptData: string, privateKey: string, cipherMode = 1, {
   output = 'string',
 } = {}) {
-  // const privateKeyInteger = new BigInteger(privateKey, 16)
   const privateKeyInteger = utils.hexToNumber(privateKey)
 
   let c3 = encryptData.substring(128, 128 + 64)
@@ -87,36 +94,15 @@ export function doDecrypt(encryptData: string, privateKey: string, cipherMode = 
   }
 
   const msg = hexToArray(c2)
-  // const c1 = getGlobalCurve().decodePointHex('04' + encryptData.substring(0, 128))!
   const c1 = sm2Curve.ProjectivePoint.fromHex('04' + encryptData.substring(0, 128))!
 
   const p = c1.multiply(privateKeyInteger)
-  // const x2 = hexToArray(leftPad(p.getX().toBigInteger().toRadix(16), 64))
-  // const y2 = hexToArray(leftPad(p.getY().toBigInteger().toRadix(16), 64))
   const x2 = hexToArray(leftPad(utils.numberToHexUnpadded(p.x), 64))
   const y2 = hexToArray(leftPad(utils.numberToHexUnpadded(p.y), 64))
-  let ct = 1
-  let offset = 0
-  let t = new Uint8Array() // 256 位
-  const z = concatArray(x2, y2)
-  const nextT = () => {
-    // (1) Hai = hash(z || ct)
-    // (2) ct++
-    t = sm3(Uint8Array.from([...z, ct >> 24 & 0x00ff, ct >> 16 & 0x00ff, ct >> 8 & 0x00ff, ct & 0x00ff]))
-    ct++
-    offset = 0
-  }
-  nextT() // 先生成 Ha1
 
-  for (let i = 0, len = msg.length; i < len; i++) {
-    // t = Ha1 || Ha2 || Ha3 || Ha4
-    if (offset === t.length) nextT()
-
-    // c2 = msg ^ t
-    msg[i] ^= t[offset++] & 0xff
-  }
+  xorCipherStream(x2, y2, msg)
   // c3 = hash(x2 || msg || y2)
-  const checkC3 = arrayToHex(Array.from(sm3(concatArray(x2, msg, y2))))
+  const checkC3 = arrayToHex(Array.from(sm3(utils.concatBytes(x2, msg, y2))))
 
   if (checkC3 === c3.toLowerCase()) {
     return output === 'array' ? msg : arrayToUtf8(msg)
@@ -166,12 +152,10 @@ export function doSignature(msg: Uint8Array | string, privateKey: string, option
       k = point.k
 
       // r = (e + x1) mod n
-      // r = e.add(point.x1).mod(n)
       r = field.add(e, point.x1)
     } while (r === ZERO || (r + k) === sm2Curve.CURVE.n)
 
     // s = ((1 + dA)^-1 * (k - r * dA)) mod n
-    // s = dA.add(BigInteger.ONE).modInverse(n).multiply(k.subtract(r.multiply(dA))).mod(n)
     s = field.mul(field.inv(field.addN(dA, ONE)), field.subN(k, field.mulN(r, dA)))
   } while (s === ZERO)
   if (der) return encodeDer(r, s) // asn.1 der 编码
@@ -202,25 +186,19 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
     r = decodeDerObj.r
     s = decodeDerObj.s
   } else {
-    // r = new BigInteger(signHex.substring(0, 64), 16)
-    // s = new BigInteger(signHex.substring(64), 16)
     r = utils.hexToNumber(signHex.substring(0, 64))
     s = utils.hexToNumber(signHex.substring(64))
   }
   
-  // const PA = curve.decodePointHex(publicKey)!
   const PA = sm2Curve.ProjectivePoint.fromHex(publicKey)!
-  // const e = new BigInteger(hashHex, 16)
   const e = utils.hexToNumber(hashHex)
   
   // t = (r + s) mod n
-  // const t = r.add(s).mod(n)
   const t = field.add(r, s)
 
   if (t === ZERO) return false
 
   // x1y1 = s * G + t * PA
-  // const x1y1 = G.multiply(s).add(PA.multiply(t))
   const x1y1 = sm2Curve.ProjectivePoint.BASE.multiply(s).add(PA.multiply(t))
 
   // R = (e + x1) mod n
@@ -261,10 +239,10 @@ export function getHash(hashHex: string | Uint8Array, publicKey: string, userId 
 
   const entl = userId.length * 4
 
-  const z = sm3(concatArray(new Uint8Array([entl >> 8 & 0x00ff, entl & 0x00ff]), data))
+  const z = sm3(utils.concatBytes(new Uint8Array([entl >> 8 & 0x00ff, entl & 0x00ff]), data))
 
   // e = hash(z || msg)
-  return arrayToHex(Array.from(sm3(concatArray(z, typeof hashHex === 'string' ? hexToArray(hashHex) : hashHex))))
+  return bytesToHex(sm3(utils.concatBytes(z, typeof hashHex === 'string' ? hexToArray(hashHex) : hashHex)))
 }
 
 /**
@@ -274,10 +252,6 @@ export function getPublicKeyFromPrivateKey(privateKey: string) {
   const pubKey = sm2Curve.getPublicKey(privateKey, false)
   const pubPad = leftPad(utils.bytesToHex(pubKey), 64)
   return pubPad
-  // const PA = G.multiply(new BigInteger(privateKey, 16))
-  // const x = leftPad(PA.getX().toBigInteger().toString(16), 64)
-  // const y = leftPad(PA.getY().toBigInteger().toString(16), 64)
-  // return '04' + x + y
 }
 
 /**
@@ -285,7 +259,6 @@ export function getPublicKeyFromPrivateKey(privateKey: string) {
  */
 export function getPoint() {
   const keypair = generateKeyPairHex()
-  // const PA = curve.decodePointHex(keypair.publicKey)
   const PA = sm2Curve.ProjectivePoint.fromHex(keypair.publicKey)
   const k = utils.hexToNumber(keypair.privateKey)
 
