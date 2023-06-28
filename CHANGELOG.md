@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.5.0...v1.5.1) (2023-06-28)
+
+
+### Bug Fixes
+
+* **sm2/kx:** align key exchange with standard ([b4fae83](https://github.com/Cubelrti/sm-crypto-v2/commit/b4fae831ae587821a9c1fe72617420134ae7f326))
+
 ## [1.5.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.4.0...v1.5.0) (2023-06-11)
 
 
