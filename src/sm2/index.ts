@@ -209,10 +209,7 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
   return r === R
 }
 
-/**
- * sm3杂凑算法
- */
-export function getHash(hashHex: string | Uint8Array, publicKey: string, userId = '1234567812345678') {
+export function getZ(publicKey: string, userId = '1234567812345678') {
   // z = hash(entl || userId || a || b || gx || gy || px || py)
   userId = utf8ToHex(userId)
   const a = leftPad(utils.numberToHexUnpadded(sm2Curve.CURVE.a), 64)
@@ -241,6 +238,14 @@ export function getHash(hashHex: string | Uint8Array, publicKey: string, userId 
 
   const z = sm3(utils.concatBytes(new Uint8Array([entl >> 8 & 0x00ff, entl & 0x00ff]), data))
 
+  return z
+}
+
+/**
+ * sm3杂凑算法
+ */
+export function getHash(hashHex: string | Uint8Array, publicKey: string, userId = '1234567812345678') {
+  const z = getZ(publicKey, userId)
   // e = hash(z || msg)
   return bytesToHex(sm3(utils.concatBytes(z, typeof hashHex === 'string' ? hexToArray(hashHex) : hashHex)))
 }

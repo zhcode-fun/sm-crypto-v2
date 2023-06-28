@@ -2,7 +2,7 @@ import { field, sm2Curve } from './ec';
 import { KeyPair, hexToArray, leftPad } from './utils';
 import * as utils from '@noble/curves/abstract/utils';
 import { sm3 } from './sm3';
-import { EmptyArray } from '.';
+import { EmptyArray, getZ } from '.';
 
 
 // 用到的常数
@@ -39,28 +39,31 @@ function hkdf(z: Uint8Array, keylen: number) {
   return msg
 }
 
-
 export function calculateSharedKey(
   keypairA: KeyPair,
   ephemeralKeypairA: KeyPair,
   publicKeyB: string,
   ephemeralPublicKeyB: string,
+  sharedKeyLength: number,
+  isRecipient = false,
   idA: string = '1234567812345678',
   idB: string = '1234567812345678',
-  sharedKeyLength: number,
 ) {
   const RA = sm2Curve.ProjectivePoint.fromHex(ephemeralKeypairA.publicKey)
   const RB = sm2Curve.ProjectivePoint.fromHex(ephemeralPublicKeyB)
   // const PA = sm2Curve.ProjectivePoint.fromHex(keypairA.publicKey) // 用不到
   const PB = sm2Curve.ProjectivePoint.fromHex(publicKeyB)
-  const ZA = hexToArray(idA)
-  const ZB = hexToArray(idB)
+  let ZA = getZ(keypairA.publicKey, idA)
+  let ZB = getZ(publicKeyB, idB)
+  if (isRecipient) {
+    [ZA, ZB] = [ZB, ZA];
+  }
   const rA = utils.hexToNumber(ephemeralKeypairA.privateKey)
   const dA = utils.hexToNumber(keypairA.privateKey)
   // 1.先算 tA
   const x1 = RA.x
   // x1_ = 2^w + (x1 & (2^w - 1))
-  const x1_ = field.add(wPow2, (x1 & wPow2Sub1))
+  const x1_ = wPow2 + (x1 & wPow2Sub1)
   // tA = (dA + x1b * rA) mod n
   const tA = field.add(dA, field.mulN(x1_, rA))
 

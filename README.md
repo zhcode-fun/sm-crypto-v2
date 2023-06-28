@@ -16,7 +16,7 @@
 - ✔️ 通过全部历史单元测试，包括 SM2、SM3 和 SM4
 - 🎲 自动选择最优的安全随机数实现，避免使用 `Math.random()` 和 `Date.now()` 进行模拟
 - 📚 同时导出 ES Module 和 CommonJS 两种格式，可按需使用
-- 🔑 新增密钥交换 API（实验性）
+- 🔑 提供 SM2 密钥交换 API
 - 🎒 未压缩大小 34kb，压缩后 17kb
 
 ## 安装
@@ -167,7 +167,7 @@ let decryptData = sm4.decrypt(encryptData, key, {padding: 'none', output: 'array
 let decryptData = sm4.decrypt(encryptData, key, {mode: 'cbc', iv: 'fedcba98765432100123456789abcdef'}) // 解密，cbc 模式
 ```
 
-### 密钥交换(实验性)
+### 密钥交换
 
 ```js
 import { sm2 } from 'sm-crypto-v2'
@@ -177,10 +177,17 @@ const keyPairB = sm2.generateKeyPairHex() // B 的秘钥对
 const ephemeralKeypairA = sm2.generateKeyPairHex() // A 的临时秘钥对
 const ephemeralKeypairB = sm2.generateKeyPairHex() // B 的临时秘钥对
 
-// A 所需参数：A 的秘钥对，A 的临时秘钥对，B 的公钥，B 的临时秘钥公钥，AB 的身份ID，长度
-const sharedKeyFromA = sm2.calculateSharedKey(keyPairA, ephemeralKeypairA, keyPairB.publicKey, ephemeralKeypairB.publicKey, 'alice@yahoo.com', 'bob@yahoo.com', 233)
-// B 所需参数：B 的秘钥对，B 的临时秘钥对，A 的公钥，A 的临时秘钥公钥，AB 的身份ID，长度
-const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPairA.publicKey, ephemeralKeypairA.publicKey, 'alice@yahoo.com', 'bob@yahoo.com', 233)
+// 无身份的密钥交换
+// A 所需参数：A 的秘钥对，A 的临时秘钥对，B 的公钥，B 的临时秘钥公钥，长度，是否为接收方（默认为 false）
+const sharedKeyFromA = sm2.calculateSharedKey(keyPairA, ephemeralKeypairA, keyPairB.publicKey, ephemeralKeypairB.publicKey, 233)
+// B 所需参数：B 的秘钥对，B 的临时秘钥对，A 的公钥，A 的临时秘钥公钥，长度，是否为接收方（默认为 false）
+const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPairA.publicKey, ephemeralKeypairA.publicKey, 233, true)
+
+// 带身份的密钥交换
+// A 所需参数：A 的秘钥对，A 的临时秘钥对，B 的公钥，B 的临时秘钥公钥，长度，是否为接收方（默认为 false），A 的身份，B 的身份
+const sharedKeyFromA = sm2.calculateSharedKey(keyPairA, ephemeralKeypairA, keyPairB.publicKey, ephemeralKeypairB.publicKey, 233, false, 'alice@yahoo.com', 'bob@yahoo.com')
+// B 所需参数：B 的秘钥对，B 的临时秘钥对，A 的公钥，A 的临时秘钥公钥，长度，是否为接收方（默认为 false），B 的身份，A 的身份
+const sharedKeyFromB = sm2.calculateSharedKey(keyPairB, ephemeralKeypairB, keyPairA.publicKey, ephemeralKeypairA.publicKey, 233, true, 'bob@yahoo.com', 'alice@yahoo.com')
 
 // expect(sharedKeyFromA).toEqual(sharedKeyFromB) => true
 ```
