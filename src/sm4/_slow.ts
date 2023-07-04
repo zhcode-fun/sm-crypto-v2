@@ -1,3 +1,6 @@
+// Slower version of SM4, for audit purpose.
+// This version is 3-4x slower than the unwrapped version.
+
 import { bytesToHex } from '@/sm3/utils'
 import { rotl } from '../sm2/sm3'
 import { arrayToHex, arrayToUtf8, hexToArray } from '../sm2/utils'
@@ -68,122 +71,83 @@ function l2(b: number) {
 const x = new Uint32Array(4)
 const tmp = new Uint32Array(4)
 function sms4Crypt(input: Uint8Array, output: Uint8Array, roundKey: Uint32Array) {
-  let x0 = 0, x1 = 0, x2 = 0, x3 = 0, tmp0 = 0, tmp1 = 0, tmp2 = 0, tmp3 = 0;
-
-  // Unroll the first loop
-  tmp0 = input[0] & 0xff;
-  tmp1 = input[1] & 0xff;
-  tmp2 = input[2] & 0xff;
-  tmp3 = input[3] & 0xff;
-  x0 = tmp0 << 24 | tmp1 << 16 | tmp2 << 8 | tmp3;
-
-  tmp0 = input[4] & 0xff;
-  tmp1 = input[5] & 0xff;
-  tmp2 = input[6] & 0xff;
-  tmp3 = input[7] & 0xff;
-  x1 = tmp0 << 24 | tmp1 << 16 | tmp2 << 8 | tmp3;
-
-  tmp0 = input[8] & 0xff;
-  tmp1 = input[9] & 0xff;
-  tmp2 = input[10] & 0xff;
-  tmp3 = input[11] & 0xff;
-  x2 = tmp0 << 24 | tmp1 << 16 | tmp2 << 8 | tmp3;
-
-  tmp0 = input[12] & 0xff;
-  tmp1 = input[13] & 0xff;
-  tmp2 = input[14] & 0xff;
-  tmp3 = input[15] & 0xff;
-  x3 = tmp0 << 24 | tmp1 << 16 | tmp2 << 8 | tmp3;
-
-  for (let r = 0; r < 32; r += 4) {
-    // Inlined l1 and rotl functions and avoid the mid variable
-    tmp0 = x1 ^ x2 ^ x3 ^ roundKey[r];
-    tmp0 = byteSub(tmp0);  // byteSub is another function we should inline if possible.
-    x0 ^= tmp0 ^ ((tmp0 << 2) | (tmp0 >>> 30)) ^ ((tmp0 << 10) | (tmp0 >>> 22)) ^ ((tmp0 << 18) | (tmp0 >>> 14)) ^ ((tmp0 << 24) | (tmp0 >>> 8));
-
-    tmp1 = x2 ^ x3 ^ x0 ^ roundKey[r + 1];
-    tmp1 = byteSub(tmp1);
-    x1 ^= tmp1 ^ ((tmp1 << 2) | (tmp1 >>> 30)) ^ ((tmp1 << 10) | (tmp1 >>> 22)) ^ ((tmp1 << 18) | (tmp1 >>> 14)) ^ ((tmp1 << 24) | (tmp1 >>> 8));
-
-    tmp2 = x3 ^ x0 ^ x1 ^ roundKey[r + 2];
-    tmp2 = byteSub(tmp2);
-    x2 ^= tmp2 ^ ((tmp2 << 2) | (tmp2 >>> 30)) ^ ((tmp2 << 10) | (tmp2 >>> 22)) ^ ((tmp2 << 18) | (tmp2 >>> 14)) ^ ((tmp2 << 24) | (tmp2 >>> 8));
-
-    tmp3 = x0 ^ x1 ^ x2 ^ roundKey[r + 3];
-    tmp3 = byteSub(tmp3);
-    x3 ^= tmp3 ^ ((tmp3 << 2) | (tmp3 >>> 30)) ^ ((tmp3 << 10) | (tmp3 >>> 22)) ^ ((tmp3 << 18) | (tmp3 >>> 14)) ^ ((tmp3 << 24) | (tmp3 >>> 8));
+  // 字节数组转成字数组（此处 1 字 = 32 比特）
+  for (let i = 0; i < 4; i++) {
+    tmp[0] = input[4 * i] & 0xff
+    tmp[1] = input[4 * i + 1] & 0xff
+    tmp[2] = input[4 * i + 2] & 0xff
+    tmp[3] = input[4 * i + 3] & 0xff
+    x[i] = tmp[0] << 24 | tmp[1] << 16 | tmp[2] << 8 | tmp[3]
   }
 
-  // Unroll the last loop
-  output[0] = x3 >>> 24 & 0xff;
-  output[1] = x3 >>> 16 & 0xff;
-  output[2] = x3 >>> 8 & 0xff;
-  output[3] = x3 & 0xff;
+  // x[i + 4] = x[i] ^ l1(byteSub(x[i + 1] ^ x[i + 2] ^ x[i + 3] ^ roundKey[i]))
+  for (let r = 0, mid: number; r < 32; r += 4) {
+    mid = x[1] ^ x[2] ^ x[3] ^ roundKey[r + 0]
+    x[0] ^= l1(byteSub(mid)) // x[4]
 
-  output[4] = x2 >>> 24 & 0xff;
-  output[5] = x2 >>> 16 & 0xff;
-  output[6] = x2 >>> 8 & 0xff;
-  output[7] = x2 & 0xff;
+    mid = x[2] ^ x[3] ^ x[0] ^ roundKey[r + 1]
+    x[1] ^= l1(byteSub(mid)) // x[5]
 
-  output[8] = x1 >>> 24 & 0xff;
-  output[9] = x1 >>> 16 & 0xff;
-  output[10] = x1 >>> 8 & 0xff;
-  output[11] = x1 & 0xff;
+    mid = x[3] ^ x[0] ^ x[1] ^ roundKey[r + 2]
+    x[2] ^= l1(byteSub(mid)) // x[6]
 
-  output[12] = x0 >>> 24 & 0xff;
-  output[13] = x0 >>> 16 & 0xff;
-  output[14] = x0 >>> 8 & 0xff;
-  output[15] = x0 & 0xff;
+    mid = x[0] ^ x[1] ^ x[2] ^ roundKey[r + 3]
+    x[3] ^= l1(byteSub(mid)) // x[7]
+  }
+
+  // 反序变换
+  for (let j = 0; j < 16; j += 4) {
+    output[j] = x[3 - j / 4] >>> 24 & 0xff
+    output[j + 1] = x[3 - j / 4] >>> 16 & 0xff
+    output[j + 2] = x[3 - j / 4] >>> 8 & 0xff
+    output[j + 3] = x[3 - j / 4] & 0xff
+  }
 }
 
 /**
  * 密钥扩展算法
  */
 function sms4KeyExt(key: Uint8Array, roundKey: Uint32Array, cryptFlag: 0 | 1) {
-  let x0 = 0, x1 = 0, x2 = 0, x3 = 0, mid = 0;
 
-  // Unwrap the first loop and use local variables instead of the array x
-  x0 = (key[0] & 0xff) << 24 | (key[1] & 0xff) << 16 | (key[2] & 0xff) << 8 | (key[3] & 0xff);
-  x1 = (key[4] & 0xff) << 24 | (key[5] & 0xff) << 16 | (key[6] & 0xff) << 8 | (key[7] & 0xff);
-  x2 = (key[8] & 0xff) << 24 | (key[9] & 0xff) << 16 | (key[10] & 0xff) << 8 | (key[11] & 0xff);
-  x3 = (key[12] & 0xff) << 24 | (key[13] & 0xff) << 16 | (key[14] & 0xff) << 8 | (key[15] & 0xff);
-
-  // 与系统参数做异或
-  x0 ^= 0xa3b1bac6;
-  x1 ^= 0x56aa3350;
-  x2 ^= 0x677d9197;
-  x3 ^= 0xb27022dc;
-
-  for (let r = 0; r < 32; r += 4) {
-    mid = x1 ^ x2 ^ x3 ^ CK[r + 0];
-    mid = byteSub(mid);  // Again, if possible, inline the byteSub function.
-    x0 ^= mid ^ ((mid << 13) | (mid >>> 19)) ^ ((mid << 23) | (mid >>> 9));
-    roundKey[r + 0] = x0;
-
-    mid = x2 ^ x3 ^ x0 ^ CK[r + 1];
-    mid = byteSub(mid);
-    x1 ^= mid ^ ((mid << 13) | (mid >>> 19)) ^ ((mid << 23) | (mid >>> 9));
-    roundKey[r + 1] = x1;
-
-    mid = x3 ^ x0 ^ x1 ^ CK[r + 2];
-    mid = byteSub(mid);
-    x2 ^= mid ^ ((mid << 13) | (mid >>> 19)) ^ ((mid << 23) | (mid >>> 9));
-    roundKey[r + 2] = x2;
-
-    mid = x0 ^ x1 ^ x2 ^ CK[r + 3];
-    mid = byteSub(mid);
-    x3 ^= mid ^ ((mid << 13) | (mid >>> 19)) ^ ((mid << 23) | (mid >>> 9));
-    roundKey[r + 3] = x3;
+  // 字节数组转成字数组（此处 1 字 = 32 比特）
+  for (let i = 0; i < 4; i++) {
+    tmp[0] = key[0 + 4 * i] & 0xff
+    tmp[1] = key[1 + 4 * i] & 0xff
+    tmp[2] = key[2 + 4 * i] & 0xff
+    tmp[3] = key[3 + 4 * i] & 0xff
+    x[i] = tmp[0] << 24 | tmp[1] << 16 | tmp[2] << 8 | tmp[3]
   }
 
+  // 与系统参数做异或
+  x[0] ^= 0xa3b1bac6
+  x[1] ^= 0x56aa3350
+  x[2] ^= 0x677d9197
+  x[3] ^= 0xb27022dc
+
+  // roundKey[i] = x[i + 4] = x[i] ^ l2(byteSub(x[i + 1] ^ x[i + 2] ^ x[i + 3] ^ CK[i]))
+  for (let r = 0, mid: number; r < 32; r += 4) {
+    mid = x[1] ^ x[2] ^ x[3] ^ CK[r + 0]
+    roundKey[r + 0] = x[0] ^= l2(byteSub(mid)) // x[4]
+
+    mid = x[2] ^ x[3] ^ x[0] ^ CK[r + 1]
+    roundKey[r + 1] = x[1] ^= l2(byteSub(mid)) // x[5]
+
+    mid = x[3] ^ x[0] ^ x[1] ^ CK[r + 2]
+    roundKey[r + 2] = x[2] ^= l2(byteSub(mid)) // x[6]
+
+    mid = x[0] ^ x[1] ^ x[2] ^ CK[r + 3]
+    roundKey[r + 3] = x[3] ^= l2(byteSub(mid)) // x[7]
+  }
+
+  // 解密时使用反序的轮密钥
   if (cryptFlag === DECRYPT) {
-    for (let r = 0; r < 16; r++) {
-      // Use destructuring to swap elements
-      [roundKey[r], roundKey[31 - r]] = [roundKey[31 - r], roundKey[r]];
+    for (let r = 0, mid: number; r < 16; r++) {
+      mid = roundKey[r]
+      roundKey[r] = roundKey[31 - r]
+      roundKey[31 - r] = mid
     }
   }
 }
-
 export interface SM4Options {
   padding?: 'pkcs#7' | 'pkcs#5' | 'none' | null
   mode?: 'cbc' | 'ecb'
