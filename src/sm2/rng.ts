@@ -1,10 +1,10 @@
-/**
- * 安全随机数发生器
- * 如果有原生同步接口，直接使用。否则维护一个随机数池，使用异步接口实现。
- * Web: webcrypto 原生同步接口
- * Node: Node v18 之前需要引入 crypto 模块，这里使用异步 import
- * 小程序：异步接口
- */
+// Secure RNG Generator wrapper
+// 1. Use native sync API if available
+// 2. Use async API and maintain number pool if available
+// 3. Throw error if none of above available
+// Web: globalThis.crypto
+// Node: async import("crypto").webcrypto
+// Mini Program: wx.getRandomValues
 declare module wx {
   function getRandomValues(options: {
     length: number;
@@ -23,7 +23,7 @@ export async function initRNGPool() {
   if (prngPool.length > DEFAULT_PRNG_POOL_SIZE / 2) return // there is sufficient number
   // we always populate full pool size
   // since numbers may be consumed during micro tasks.
-  if ('wx' in globalThis) {
+  if ('wx' in globalThis && 'getRandomValues' in globalThis.wx) {
     prngPool = await new Promise(r => {
       wx.getRandomValues({
         length: DEFAULT_PRNG_POOL_SIZE,
@@ -33,10 +33,16 @@ export async function initRNGPool() {
       });
     });
   } else {
-    // check if node, use webcrypto if available
+    // check if node or browser, use webcrypto if available
     try {
-      const crypto = await import(/* webpackIgnore: true */ 'crypto');
-      _syncCrypto = crypto.webcrypto
+      // node 19+ and browser
+      if (globalThis.crypto) {
+        _syncCrypto = globalThis.crypto
+      } else {
+        // node below 19
+        const crypto = await import(/* webpackIgnore: true */ 'crypto');
+        _syncCrypto = crypto.webcrypto
+      }
       const array = new Uint8Array(DEFAULT_PRNG_POOL_SIZE);
       _syncCrypto.getRandomValues(array);
       prngPool = array;
