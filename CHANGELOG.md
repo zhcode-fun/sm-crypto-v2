@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.5.1...v1.6.0) (2023-07-11)
+
+
+### Features
+
+* **sm4:** optimize sm4 ([031159c](https://github.com/Cubelrti/sm-crypto-v2/commit/031159c7e2889f01b499b9286ce1d93a5e55b151))
+
 ### [1.5.1](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.5.0...v1.5.1) (2023-06-28)
 
 
