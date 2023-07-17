@@ -1,17 +1,21 @@
 import { sm2 } from '@/index'
-import { beforeAll, test, expect, it, describe, TestContext, beforeEach } from 'vitest'
+import { expect, it, describe, beforeEach } from 'vitest'
 
 const cipherMode = 1 // 1 - C1C3C2，0 - C1C2C3
 
 // const msgString = 'abcdefghABCDEFGH12345678abcdefghABCDEFGH12345678abcdefghABCDabcdefghABCDEFGH12345678abcdefghABCDEFGH12345678abcdefghABCDabcdefghABCDEFGH12345678abcdefghABCDEFGH12345678abcdefghABCDabcdefghABCDEFGH12345678abcdefghABCDEFGH12345678abcdefghABCDabcdefghABCDEFGH';
 const msgString = 'absasdagfadgadsfdfdsf'
-interface TestContext {
-    privateKey: string
-    compressedPublicKey: string
-    unCompressedPublicKey: string
+
+declare module 'vitest' {
+    export interface TestContext {
+        privateKey: string
+        compressedPublicKey: string
+        unCompressedPublicKey: string
+    }
+
 }
 
-beforeEach<TestContext>(async (context: TestContext) => {
+beforeEach(async (context) => {
     // 生成密钥对
     let keypair = sm2.generateKeyPairHex()
     let unCompressedPublicKey = keypair.publicKey
@@ -209,5 +213,24 @@ describe('sm2: sign data and verify sign', () => {
             })
             expect(verifyResult6).toBe(true)
         }
+    })
+})
+
+describe('sm2: precomputed public key', () => {
+    it('precompute successfully', (ctx) => {
+        let precomputedPublicKey = sm2.precomputePublicKey(ctx.unCompressedPublicKey)
+        expect(precomputedPublicKey).toBeDefined()
+    })
+    it('use precomputed key to encrypt data', (ctx) => {
+        const precomputedPublicKey = sm2.precomputePublicKey(ctx.unCompressedPublicKey)
+        let encryptData = sm2.doEncrypt(msgString, precomputedPublicKey, cipherMode)
+        let decryptData = sm2.doDecrypt(encryptData, ctx.privateKey, cipherMode)
+        expect(decryptData).toBe(msgString)
+    })
+    it('use precomputed key to verify data', (ctx) => {
+        const precomputedPublicKey = sm2.precomputePublicKey(ctx.unCompressedPublicKey)
+        let sigValueHex = sm2.doSignature(msgString, ctx.privateKey)
+        let verifyResult = sm2.doVerifySignature(msgString, sigValueHex, precomputedPublicKey)
+        expect(verifyResult).toBe(true)
     })
 })

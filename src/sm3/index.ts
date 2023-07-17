@@ -1,6 +1,6 @@
 import { hmac } from '@/sm2/hmac'
 import { sm3 as sm2sm3 } from '../sm2/sm3'
-import { arrayToHex, hexToArray, leftPad } from '../sm2/utils'
+import { hexToArray } from '../sm2/utils'
 import { bytesToHex } from './utils'
 
 /**

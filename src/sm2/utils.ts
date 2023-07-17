@@ -142,11 +142,12 @@ export function hexToArray(hexStr: string) {
 export function verifyPublicKey(publicKey: string) {
   const point = sm2Curve.ProjectivePoint.fromHex(publicKey)
   if (!point) return false
-
-  const x = point.x
-  const y = point.y
-  // 验证 y^2 是否等于 x^3 + ax + b
-  return sm2Fp.sqr(y) === sm2Fp.add(sm2Fp.addN(sm2Fp.mulN(x, sm2Fp.sqrN(x)), sm2Fp.mulN(x, sm2Curve.CURVE.a)), sm2Curve.CURVE.b)
+  try {
+    point.assertValidity()
+    return true
+  } catch (error) {
+    return false
+  }
 }
 
 /**

@@ -127,6 +127,21 @@ import { sm2 } from 'sm-crypto-v2'
 let point = sm2.getPoint() // 获取一个椭圆曲线点，可在sm2签名时传入
 ```
 
+### 预计算公钥
+
+```js
+import { sm2 } from 'sm-crypto-v2'
+let keypair = sm2.generateKeyPairHex()
+
+const precomputedPublicKey = sm2.precomputePublicKey(keypair.publicKey)
+// 加密和验签可以传入预计算后的点
+let encryptData = sm2.doEncrypt(msgString, precomputedPublicKey, cipherMode) // 加密结果
+let verifyResult4 = sm2.doVerifySignature(msg, sigValueHex4, precomputedPublicKey, {
+    hash: true,
+}) // 验签结果
+
+```
+
 ## sm3
 
 ```js

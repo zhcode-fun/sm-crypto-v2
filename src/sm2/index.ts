@@ -6,6 +6,7 @@ import * as utils from '@noble/curves/abstract/utils';
 import { field, sm2Curve } from './ec';
 import { ONE, ZERO } from './bn';
 import { bytesToHex } from '@/sm3/utils';
+import { ProjPointType } from '@noble/curves/abstract/weierstrass';
 
 export * from './utils'
 export { initRNGPool } from './rng'
@@ -17,10 +18,11 @@ export const EmptyArray = new Uint8Array()
 /**
  * 加密
  */
-export function doEncrypt(msg: string | Uint8Array, publicKey: string, cipherMode = 1) {
+export function doEncrypt(msg: string | Uint8Array, publicKey: string | ProjPointType<bigint>, cipherMode = 1) {
 
   const msgArr = typeof msg === 'string' ? hexToArray(utf8ToHex(msg)) : Uint8Array.from(msg)
-  const publicKeyPoint = sm2Curve.ProjectivePoint.fromHex(publicKey)
+  const publicKeyPoint = typeof publicKey === 'string' ? sm2Curve.ProjectivePoint.fromHex(publicKey) :
+    publicKey
 
   const keypair = generateKeyPairHex()
   const k = utils.hexToNumber(keypair.privateKey)
@@ -28,7 +30,7 @@ export function doEncrypt(msg: string | Uint8Array, publicKey: string, cipherMod
   // c1 = k * G
   let c1 = keypair.publicKey
   if (c1.length > 128) c1 = c1.substring(c1.length - 128)
-  const p = publicKeyPoint!.multiply(k)
+  const p = publicKeyPoint.multiply(k)
   
   // (x2, y2) = k * publicKey
   const x2 = hexToArray(leftPad(utils.numberToHexUnpadded(p.x), 64))
@@ -165,16 +167,17 @@ export function doSignature(msg: Uint8Array | string, privateKey: string, option
 /**
  * 验签
  */
-export function doVerifySignature(msg: string | Uint8Array, signHex: string, publicKey: string, options: { der?: boolean, hash?: boolean, userId?: string } = {}) {
+export function doVerifySignature(msg: string | Uint8Array, signHex: string, publicKey: string | ProjPointType<bigint>, options: { der?: boolean, hash?: boolean, userId?: string } = {}) {
   let hashHex: string
   const {
     hash,
     der,
     userId,
   } = options
+  const publicKeyHex = typeof publicKey === 'string' ? publicKey : publicKey.toHex(false)
   if (hash) {
     // sm3杂凑
-    hashHex = getHash(typeof msg === 'string' ? utf8ToHex(msg) : msg, publicKey, userId)
+    hashHex = getHash(typeof msg === 'string' ? utf8ToHex(msg) : msg, publicKeyHex, userId)
   } else {
     hashHex = typeof msg === 'string' ? utf8ToHex(msg) : arrayToHex(Array.from(msg))
   }
@@ -190,7 +193,7 @@ export function doVerifySignature(msg: string | Uint8Array, signHex: string, pub
     s = utils.hexToNumber(signHex.substring(64))
   }
   
-  const PA = sm2Curve.ProjectivePoint.fromHex(publicKey)!
+  const PA = typeof publicKey === 'string' ? sm2Curve.ProjectivePoint.fromHex(publicKey) : publicKey
   const e = utils.hexToNumber(hashHex)
   
   // t = (r + s) mod n
@@ -248,6 +251,18 @@ export function getHash(hashHex: string | Uint8Array, publicKey: string, userId 
   const z = getZ(publicKey, userId)
   // e = hash(z || msg)
   return bytesToHex(sm3(utils.concatBytes(z, typeof hashHex === 'string' ? hexToArray(hashHex) : hashHex)))
+}
+
+/**
+ * 预计算公钥点，可用于提升加密性能
+ * @export
+ * @param {string} publicKey 公钥
+ * @param windowSize 计算窗口大小，默认为 8
+ * @returns {ProjPointType<bigint>} 预计算的点
+ */
+export function precomputePublicKey(publicKey: string, windowSize?: number) {
+  const point = sm2Curve.ProjectivePoint.fromHex(publicKey)
+  return sm2Curve.utils.precompute(windowSize, point)
 }
 
 /**
