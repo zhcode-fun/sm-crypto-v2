@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.6.0...v1.7.0) (2023-07-17)
+
+
+### Features
+
+* **sm2:** support precompute sm2 point ([ae347bf](https://github.com/Cubelrti/sm-crypto-v2/commit/ae347bfff6c306318276a31f5958290ac7f07b9c))
+
 ## [1.6.0](https://github.com/Cubelrti/sm-crypto-v2/compare/v1.5.1...v1.6.0) (2023-07-11)
 
 
