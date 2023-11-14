@@ -49,7 +49,7 @@ export function compressPublicKeyHex(s: string) {
  * utf8串转16进制串
  */
 export function utf8ToHex(input: string) {
-  input = decodeURIComponent(encodeURIComponent(input))
+  input = unescape(encodeURIComponent(input))
 
   const length = input.length
 
